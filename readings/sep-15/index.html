@@ -1,0 +1,1144 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="CS 473 第 3.1–3.2 节中文阅读辅导：联合分布、协方差、相关系数、多元高斯、Mahalanobis 距离、边缘分布与条件分布。">
+  <title>CS 473 · 3.1–3.2 多变量概率阅读辅导</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] },
+      options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'] }
+    };
+  </script>
+  <script async id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #5b6476;
+      --paper: #f7f8fc;
+      --surface: #ffffff;
+      --line: #d9deea;
+      --blue: #2d5bd1;
+      --blue-soft: #eaf0ff;
+      --orange: #d66b2c;
+      --orange-soft: #fff1e8;
+      --teal: #087f72;
+      --teal-soft: #e4f5f2;
+      --purple: #7451b8;
+      --red: #b73a4a;
+      --shadow: 0 18px 45px rgba(31, 45, 78, .10);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background-color: var(--paper);
+      background-image:
+        linear-gradient(rgba(45, 91, 209, .045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(45, 91, 209, .045) 1px, transparent 1px);
+      background-size: 32px 32px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      font-size: 17px;
+      line-height: 1.78;
+    }
+
+    a { color: var(--blue); text-underline-offset: 3px; }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    svg { display: block; width: 100%; height: auto; }
+    code, .mono { font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace; }
+
+    .skip-link {
+      position: absolute;
+      left: 1rem;
+      top: -5rem;
+      z-index: 50;
+      padding: .65rem 1rem;
+      color: white;
+      background: var(--ink);
+      border-radius: 10px;
+    }
+    .skip-link:focus { top: 1rem; }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      color: white;
+      background: #172033;
+      border-bottom: 5px solid var(--orange);
+    }
+    .hero::after {
+      content: "Σ";
+      position: absolute;
+      right: max(4vw, 1rem);
+      bottom: -5.7rem;
+      color: rgba(255,255,255,.055);
+      font-family: Georgia, serif;
+      font-size: clamp(13rem, 30vw, 28rem);
+      line-height: 1;
+      pointer-events: none;
+    }
+    .hero-inner {
+      position: relative;
+      z-index: 1;
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 4.2rem 2rem 3.8rem;
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: .55rem;
+      margin: 0 0 1.1rem;
+      color: #cbd6ff;
+      font-size: .82rem;
+      font-weight: 700;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+    .eyebrow::before {
+      content: "";
+      width: 2rem;
+      height: 3px;
+      background: var(--orange);
+    }
+    h1 {
+      max-width: 900px;
+      margin: 0;
+      font-family: Georgia, "Noto Serif SC", serif;
+      font-size: clamp(2.45rem, 6vw, 5.4rem);
+      font-weight: 700;
+      letter-spacing: -.045em;
+      line-height: 1.04;
+    }
+    .hero-lead {
+      max-width: 740px;
+      margin: 1.35rem 0 0;
+      color: #dce3f5;
+      font-size: clamp(1.02rem, 2vw, 1.28rem);
+      line-height: 1.65;
+    }
+    .hero-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .65rem;
+      margin-top: 1.8rem;
+    }
+    .hero-tags span {
+      padding: .35rem .7rem;
+      color: #eef2ff;
+      border: 1px solid rgba(255,255,255,.24);
+      border-radius: 999px;
+      font-size: .8rem;
+    }
+    .site-nav { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:1.15rem; }
+    .site-nav a, .site-nav strong { padding:.34rem .72rem; border:1px solid rgba(255,255,255,.32); border-radius:999px; font-size:.82rem; }
+    .site-nav a { color:white; text-decoration:none; }
+    .site-nav a:hover { background:rgba(255,255,255,.12); }
+    .site-nav strong { color:#26324b; background:white; }
+
+    .page-shell {
+      display: grid;
+      grid-template-columns: 230px minmax(0, 820px);
+      gap: clamp(2rem, 6vw, 5.5rem);
+      align-items: start;
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 3rem 2rem 6rem;
+    }
+    .toc {
+      position: sticky;
+      top: 1.5rem;
+      padding: 1rem 0;
+    }
+    .toc strong {
+      display: block;
+      margin-bottom: .7rem;
+      color: var(--muted);
+      font-size: .76rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .toc a {
+      display: block;
+      padding: .42rem .7rem;
+      color: var(--muted);
+      border-left: 2px solid var(--line);
+      text-decoration: none;
+      font-size: .88rem;
+      line-height: 1.35;
+    }
+    .toc a:hover, .toc a.active {
+      color: var(--blue);
+      border-left-color: var(--blue);
+      background: var(--blue-soft);
+    }
+
+    main { min-width: 0; }
+    section { scroll-margin-top: 1.5rem; }
+    .chapter { margin-top: 4.8rem; }
+    .chapter:first-child { margin-top: 0; }
+    .section-kicker {
+      margin: 0 0 .5rem;
+      color: var(--blue);
+      font-size: .78rem;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    h2, h3 {
+      font-family: Georgia, "Noto Serif SC", serif;
+      letter-spacing: -.025em;
+      line-height: 1.25;
+    }
+    h2 {
+      margin: 0 0 1.25rem;
+      font-size: clamp(1.9rem, 4vw, 3rem);
+    }
+    h3 {
+      margin: 2.8rem 0 .8rem;
+      font-size: clamp(1.35rem, 2.5vw, 1.8rem);
+    }
+    p { margin: .8rem 0; }
+    .lead {
+      color: #384155;
+      font-size: 1.09rem;
+    }
+    .plain-language {
+      margin: 1.5rem 0;
+      padding: 1.2rem 1.35rem;
+      background: var(--blue-soft);
+      border-left: 4px solid var(--blue);
+      border-radius: 0 12px 12px 0;
+    }
+    .plain-language strong { color: #1b439d; }
+    .warning {
+      background: var(--orange-soft);
+      border-left-color: var(--orange);
+    }
+    .warning strong { color: #914317; }
+    .formula {
+      overflow-x: auto;
+      margin: 1.3rem 0;
+      padding: 1.15rem 1.35rem;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: 0 7px 20px rgba(31,45,78,.05);
+      text-align: center;
+    }
+    .formula small {
+      display: block;
+      margin-top: .55rem;
+      color: var(--muted);
+      text-align: left;
+    }
+    .inline-list {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: .8rem;
+      margin: 1.3rem 0;
+    }
+    .concept {
+      padding: 1rem;
+      background: var(--surface);
+      border-top: 4px solid var(--blue);
+      box-shadow: var(--shadow);
+    }
+    .concept:nth-child(2) { border-top-color: var(--orange); }
+    .concept:nth-child(3) { border-top-color: var(--teal); }
+    .concept b { display: block; margin-bottom: .25rem; }
+    .concept span { color: var(--muted); font-size: .88rem; line-height: 1.5; }
+
+    .lab {
+      margin: 2rem 0 2.5rem;
+      padding: clamp(1rem, 3vw, 1.6rem);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .lab-header {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+    .lab-header h3 { margin: 0; font-size: 1.3rem; }
+    .lab-header p { margin: .25rem 0 0; color: var(--muted); font-size: .88rem; line-height: 1.5; }
+    .lab-number {
+      flex: 0 0 auto;
+      display: grid;
+      width: 2.3rem;
+      height: 2.3rem;
+      place-items: center;
+      color: white;
+      background: var(--ink);
+      border-radius: 50%;
+      font-weight: 800;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin: 1rem 0;
+      padding: .9rem 1rem;
+      background: #f3f5fa;
+      border-radius: 12px;
+    }
+    .control label {
+      display: flex;
+      justify-content: space-between;
+      gap: .6rem;
+      margin-bottom: .35rem;
+      color: var(--muted);
+      font-size: .82rem;
+      font-weight: 700;
+    }
+    input[type="range"] { width: 100%; accent-color: var(--blue); }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: .65rem;
+      margin-top: 1rem;
+    }
+    .stat {
+      padding: .7rem .8rem;
+      background: #f7f8fb;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+    .stat span { display: block; color: var(--muted); font-size: .72rem; }
+    .stat b { font-size: 1.08rem; }
+    .chart-frame {
+      overflow: hidden;
+      background: #fbfcff;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+    .chart-note {
+      margin: .7rem 0 0;
+      color: var(--muted);
+      font-size: .82rem;
+      line-height: 1.55;
+    }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin: .65rem 0;
+      color: var(--muted);
+      font-size: .8rem;
+    }
+    .legend span { display: inline-flex; align-items: center; gap: .4rem; }
+    .swatch { width: .85rem; height: .85rem; border-radius: 50%; background: var(--blue); }
+    .swatch.orange { background: var(--orange); }
+    .swatch.teal { background: var(--teal); }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.2rem;
+      align-items: start;
+    }
+    .mini-panel {
+      padding: 1rem;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+    }
+    .mini-panel h4 { margin: 0 0 .35rem; font-size: 1rem; }
+    .mini-panel p { margin: .3rem 0; color: var(--muted); font-size: .86rem; }
+    .diagram-label { font-size: 13px; fill: var(--ink); font-weight: 700; }
+    .diagram-note { font-size: 12px; fill: var(--muted); }
+    .axis { stroke: #7c879c; stroke-width: 1; }
+    .grid-line { stroke: #e3e7f0; stroke-width: 1; }
+
+    .toggle-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .6rem;
+      margin: .8rem 0;
+    }
+    .toggle-row button, .quiz button {
+      padding: .52rem .82rem;
+      color: var(--ink);
+      background: white;
+      border: 1px solid #b8c1d2;
+      border-radius: 9px;
+    }
+    .toggle-row button[aria-pressed="true"], .quiz button:hover {
+      color: white;
+      background: var(--blue);
+      border-color: var(--blue);
+    }
+
+    .matrix {
+      display: inline-grid;
+      grid-template-columns: repeat(2, minmax(3.4rem, auto));
+      gap: .15rem .8rem;
+      position: relative;
+      padding: .2rem .75rem;
+      font-family: "Cascadia Code", Consolas, monospace;
+      font-size: .92rem;
+    }
+    .matrix::before, .matrix::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: .38rem;
+      border-top: 2px solid var(--ink);
+      border-bottom: 2px solid var(--ink);
+    }
+    .matrix::before { left: 0; border-left: 2px solid var(--ink); }
+    .matrix::after { right: 0; border-right: 2px solid var(--ink); }
+
+    .step-list { counter-reset: steps; padding: 0; list-style: none; }
+    .step-list li {
+      position: relative;
+      margin: 1rem 0;
+      padding-left: 3rem;
+    }
+    .step-list li::before {
+      counter-increment: steps;
+      content: counter(steps);
+      position: absolute;
+      left: 0;
+      top: .05rem;
+      display: grid;
+      width: 2rem;
+      height: 2rem;
+      place-items: center;
+      color: white;
+      background: var(--blue);
+      border-radius: 50%;
+      font-weight: 800;
+    }
+
+    .quiz {
+      margin: 1rem 0;
+      padding: 1rem;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+    .quiz p { margin-top: 0; }
+    .quiz-options { display: flex; flex-wrap: wrap; gap: .6rem; }
+    .feedback { min-height: 1.7rem; margin: .65rem 0 0; color: var(--muted); font-size: .9rem; }
+    .feedback.correct { color: var(--teal); font-weight: 700; }
+    .feedback.wrong { color: var(--red); font-weight: 700; }
+
+    .recap {
+      margin-top: 4rem;
+      padding: 1.5rem;
+      color: white;
+      background: var(--ink);
+      border-radius: var(--radius);
+    }
+    .recap h2 { margin-bottom: .8rem; font-size: 1.75rem; }
+    .recap ul { margin-bottom: 0; padding-left: 1.25rem; }
+    .recap li { margin: .55rem 0; }
+    footer {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 0 2rem 3rem;
+      color: var(--muted);
+      font-size: .78rem;
+      text-align: center;
+    }
+
+    @media (max-width: 880px) {
+      .page-shell { grid-template-columns: 1fr; }
+      .toc {
+        position: static;
+        display: flex;
+        overflow-x: auto;
+        gap: .25rem;
+        padding: .5rem 0;
+      }
+      .toc strong { display: none; }
+      .toc a { flex: 0 0 auto; border: 0; border-bottom: 2px solid var(--line); }
+      .toc a:hover, .toc a.active { border-bottom-color: var(--blue); }
+    }
+    @media (max-width: 640px) {
+      body { font-size: 16px; }
+      .hero-inner, .page-shell { padding-left: 1rem; padding-right: 1rem; }
+      .hero-inner { padding-top: 3rem; padding-bottom: 3rem; }
+      .inline-list, .two-col, .controls, .stats { grid-template-columns: 1fr; }
+      .lab-header { align-items: center; }
+      .chapter { margin-top: 3.7rem; }
+    }
+    @media print {
+      body { background: white; }
+      .hero { background: white; color: var(--ink); border-bottom: 2px solid var(--ink); }
+      .hero-lead, .eyebrow { color: var(--muted); }
+      .hero-tags span { color: var(--ink); border-color: var(--line); }
+      .hero::after, .toc, .controls, .toggle-row, .quiz { display: none; }
+      .page-shell { display: block; max-width: 850px; padding-top: 2rem; }
+      .lab, .concept { box-shadow: none; break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+
+  <header class="hero">
+    <div class="hero-inner">
+      <p class="eyebrow">CS 473 · Reading 3.1–3.2</p>
+      <h1>从散点到椭圆：多变量概率的直觉</h1>
+      <p class="hero-lead">一个变量的高斯是一条钟形曲线；把多个变量放在一起，概率会变成一片“地形”。这次阅读的核心，就是学会从这片地形里读出变量之间的关系。</p>
+      <div class="hero-tags" aria-label="本页主题">
+        <span>Joint distribution</span><span>Covariance</span><span>Correlation</span><span>Multivariate Gaussian</span><span>Conditioning</span>
+      </div>
+      <nav class="site-nav" aria-label="课程与语言导航"><a href="../../">← 课程目录</a><strong>中文</strong><a href="reading-notes-en.html" lang="en">English</a></nav>
+    </div>
+  </header>
+
+  <div class="page-shell">
+    <nav class="toc" aria-label="页面目录">
+      <strong>阅读路线</strong>
+      <a href="#map">先看全局</a>
+      <a href="#joint">3.1 联合分布</a>
+      <a href="#correlation">相关不等于一切</a>
+      <a href="#simpson">Simpson 悖论</a>
+      <a href="#mvn">3.2 多元高斯</a>
+      <a href="#mahalanobis">Mahalanobis 距离</a>
+      <a href="#condition">边缘化与条件化</a>
+      <a href="#recap">最后复盘</a>
+    </nav>
+
+    <main id="main">
+      <section id="map" class="chapter">
+        <p class="section-kicker">先看全局</p>
+        <h2>这两节到底在解决什么问题？</h2>
+        <p class="lead">第 2 章大多在研究一个随机变量。现在我们问更真实的问题：<strong>身高和体重一起怎样变化？多个传感器的读数怎样互相提供信息？看到一个变量之后，对另一个变量的判断会怎样更新？</strong></p>
+
+        <div class="inline-list" aria-label="阅读核心路线">
+          <div class="concept"><b>1 · 描述关系</b><span>用联合分布写出“多个变量同时取值”的概率。</span></div>
+          <div class="concept"><b>2 · 压缩关系</b><span>用协方差与相关系数概括线性同涨同跌。</span></div>
+          <div class="concept"><b>3 · 利用关系</b><span>用多元高斯完成边缘化、条件化与预测。</span></div>
+        </div>
+
+        <div class="plain-language">
+          <strong>先记住一句话：</strong>均值向量 \(\mu\) 告诉你“中心在哪里”，协方差矩阵 \(\Sigma\) 告诉你“云团朝哪里伸展、伸展多少”。第 3.2 节的大部分公式，都是在精确表达这幅图。
+        </div>
+      </section>
+
+      <section id="joint" class="chapter">
+        <p class="section-kicker">3.1 · Joint distributions</p>
+        <h2>把多个随机变量放进同一张地图</h2>
+        <p>联合分布 \(p(x,y)\) 描述的是 \(X\) 和 \(Y\) <em>同时</em>取某些值的可能性。对离散变量，它可以是一张表；对连续变量，它是一张二维密度地形。只知道 \(p(x)\) 和 \(p(y)\) 通常不够，因为它们没有告诉我们两者怎样一起变化。</p>
+
+        <h3>协方差：同涨同跌的带单位刻度</h3>
+        <div class="formula">
+          \[\operatorname{Cov}[X,Y] = \mathbb{E}[(X-\mathbb{E}[X])(Y-\mathbb{E}[Y])] = \mathbb{E}[XY]-\mathbb{E}[X]\mathbb{E}[Y]\]
+          <small>先把两个变量各自减去均值，再看偏差的乘积平均起来。</small>
+        </div>
+        <ul>
+          <li>两者经常一起高于均值、或一起低于均值：乘积多为正，协方差为正。</li>
+          <li>一个高时另一个常常低：乘积多为负，协方差为负。</li>
+          <li>正负抵消：协方差接近 0，但这只说明没有明显的<strong>线性</strong>趋势。</li>
+        </ul>
+
+        <p>如果 \(\mathbf{x}\in\mathbb{R}^D\)，所有两两协方差排成矩阵：</p>
+        <div class="formula">
+          \[\Sigma=\operatorname{Cov}[\mathbf{x}]=\mathbb{E}\left[(\mathbf{x}-\mu)(\mathbf{x}-\mu)^T\right]\]
+          <small>对角线 \(\Sigma_{ii}\) 是第 \(i\) 个变量的方差；非对角线 \(\Sigma_{ij}\) 是第 \(i,j\) 个变量的协方差。矩阵必定对称。</small>
+        </div>
+
+        <h3>协方差矩阵的三个实用性质</h3>
+        <ol class="step-list">
+          <li><strong>对称：</strong>\(\operatorname{Cov}[X_i,X_j]=\operatorname{Cov}[X_j,X_i]\)，所以上下三角包含重复信息。</li>
+          <li><strong>半正定：</strong>任意方向 \(\mathbf a\) 上的方差 \(\operatorname{Var}(\mathbf a^T\mathbf x)=\mathbf a^T\Sigma\mathbf a\ge0\)。直觉上，“沿某个方向的方差”为负数没有意义。</li>
+          <li><strong>线性变换有闭式解：</strong>若 \(\mathbf z=A\mathbf x+\mathbf b\)，则 \(\operatorname{Cov}[\mathbf z]=A\Sigma A^T\)。平移 \(\mathbf b\) 只移动中心，不改变云团形状。</li>
+        </ol>
+        <p>还有一个常用换算：\(\mathbb E[\mathbf x\mathbf x^T]=\Sigma+\mu\mu^T\)。它提醒我们，二阶矩不只包含“围绕均值的散布”，也包含均值本身的贡献。</p>
+
+        <div class="lab" id="cov-lab">
+          <div class="lab-header">
+            <div>
+              <h3>交互实验：相关性不等于斜率</h3>
+              <p>改变 \(\rho\) 看方向与紧密程度；再只改变 \(\sigma_Y\)，观察相关系数不变而协方差变化。</p>
+            </div>
+            <span class="lab-number">1</span>
+          </div>
+          <div class="controls">
+            <div class="control">
+              <label for="rho-range">相关系数 ρ <output id="rho-value">0.75</output></label>
+              <input id="rho-range" type="range" min="-0.95" max="0.95" value="0.75" step="0.05">
+            </div>
+            <div class="control">
+              <label for="sx-range">σ<sub>X</sub> <output id="sx-value">1.0</output></label>
+              <input id="sx-range" type="range" min="0.5" max="2.5" value="1" step="0.1">
+            </div>
+            <div class="control">
+              <label for="sy-range">σ<sub>Y</sub> <output id="sy-value">1.0</output></label>
+              <input id="sy-range" type="range" min="0.5" max="2.5" value="1" step="0.1">
+            </div>
+          </div>
+          <div class="chart-frame">
+            <svg id="cov-chart" viewBox="0 0 720 390" role="img" aria-labelledby="cov-title cov-desc">
+              <title id="cov-title">相关性散点交互图</title>
+              <desc id="cov-desc">展示相关系数和两个变量标准差改变时，散点云方向和尺度如何变化。</desc>
+            </svg>
+          </div>
+          <div class="stats" aria-live="polite">
+            <div class="stat"><span>理论协方差 ρσXσY</span><b id="cov-stat">0.75</b></div>
+            <div class="stat"><span>理论相关系数</span><b id="corr-stat">0.75</b></div>
+            <div class="stat"><span>大致回归斜率 ρσY/σX</span><b id="slope-stat">0.75</b></div>
+          </div>
+          <p class="chart-note">同一个 \(\rho\) 可以对应不同斜率；同一个 \(\rho\) 也可以对应不同协方差。相关系数把单位和尺度除掉了，所以它只保留标准化后的线性关系。</p>
+        </div>
+
+        <h3 id="correlation">相关系数：把协方差标准化</h3>
+        <div class="formula">
+          \[\rho=\operatorname{corr}[X,Y]=\frac{\operatorname{Cov}[X,Y]}{\sqrt{\operatorname{Var}[X]\operatorname{Var}[Y]}}\qquad -1\le\rho\le1\]
+          <small>协方差带单位，例如“厘米·千克”；相关系数没有单位，因此更适合跨尺度比较。</small>
+        </div>
+        <p>对随机向量，把每一个 \(\Sigma_{ij}\) 除以 \(\sigma_i\sigma_j\)，就得到相关矩阵。它的对角线全是 1，非对角线则是两两相关系数；也可以理解成先把每个变量标准化，再计算协方差矩阵。</p>
+
+        <div class="two-col">
+          <div class="mini-panel">
+            <h4>独立 ⇒ 不相关</h4>
+            <p>若 \(p(x,y)=p(x)p(y)\)，可以推出 \(\operatorname{Cov}[X,Y]=0\)。</p>
+          </div>
+          <div class="mini-panel">
+            <h4>不相关 ⇏ 独立</h4>
+            <p>\(Y=X^2\) 完全由 \(X\) 决定，但当 \(X\sim U(-1,1)\) 时相关系数为 0。</p>
+          </div>
+        </div>
+
+        <div class="lab" id="nonlinear-lab">
+          <div class="lab-header">
+            <div>
+              <h3>可视化：ρ = 0 也可能关系很强</h3>
+              <p>直线只能看见线性关系；抛物线的左右两半，一个贡献负趋势，一个贡献正趋势，最后正好抵消。</p>
+            </div>
+            <span class="lab-number">2</span>
+          </div>
+          <div class="chart-frame">
+            <svg id="nonlinear-chart" viewBox="0 0 720 330" role="img" aria-labelledby="nonlinear-title nonlinear-desc">
+              <title id="nonlinear-title">X 与 X 平方的非线性关系</title>
+              <desc id="nonlinear-desc">散点沿抛物线分布，虽然 Y 完全由 X 决定，线性相关系数仍接近零。</desc>
+            </svg>
+          </div>
+        </div>
+
+        <div class="plain-language warning">
+          <strong>相关不代表因果。</strong>冰淇淋销量与暴力犯罪可能同时在炎热天气上升。\(X\) 能预测 \(Y\)，不等于干预 \(X\) 会改变 \(Y\)。隐藏变量“天气”同时指向两者，才是更合理的因果解释。
+        </div>
+
+        <svg viewBox="0 0 720 220" role="img" aria-labelledby="dag-title dag-desc">
+          <title id="dag-title">隐藏共同原因的因果图</title>
+          <desc id="dag-desc">炎热天气同时导致冰淇淋销量与户外活动增加，因此两者可能相关，但冰淇淋并非犯罪的原因。</desc>
+          <defs>
+            <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#65718a"/></marker>
+          </defs>
+          <rect x="265" y="18" width="190" height="55" rx="12" fill="#fff1e8" stroke="#d66b2c"/>
+          <text x="360" y="51" text-anchor="middle" class="diagram-label">隐藏原因：炎热天气</text>
+          <rect x="80" y="145" width="210" height="55" rx="12" fill="#eaf0ff" stroke="#2d5bd1"/>
+          <text x="185" y="178" text-anchor="middle" class="diagram-label">冰淇淋销量上升</text>
+          <rect x="430" y="145" width="210" height="55" rx="12" fill="#e4f5f2" stroke="#087f72"/>
+          <text x="535" y="178" text-anchor="middle" class="diagram-label">户外活动等因素变化</text>
+          <path d="M315 73 C280 100 230 110 205 143" fill="none" stroke="#65718a" stroke-width="2" marker-end="url(#arrow)"/>
+          <path d="M405 73 C440 100 490 110 515 143" fill="none" stroke="#65718a" stroke-width="2" marker-end="url(#arrow)"/>
+        </svg>
+      </section>
+
+      <section id="simpson" class="chapter">
+        <p class="section-kicker">3.1.5 · Simpson's paradox</p>
+        <h2>分组里向上，合起来却向下</h2>
+        <p>Simpson 悖论不是算错了，而是<strong>混合比例改变了问题</strong>。每个组内部都可能是正相关，但如果“高 \(X\)”的数据大多来自整体 \(Y\) 较低的组，合并后的趋势就可能翻转。</p>
+
+        <div class="lab" id="simpson-lab">
+          <div class="lab-header">
+            <div>
+              <h3>交互实验：同一批点，两种结论</h3>
+              <p>切换“忽略分组”和“看见分组”。数据没有变化，变化的是你保留了多少上下文。</p>
+            </div>
+            <span class="lab-number">3</span>
+          </div>
+          <div class="toggle-row" role="group" aria-label="Simpson 悖论显示方式">
+            <button id="overall-btn" type="button" aria-pressed="true">忽略分组</button>
+            <button id="groups-btn" type="button" aria-pressed="false">看见分组</button>
+          </div>
+          <div class="chart-frame">
+            <svg id="simpson-chart" viewBox="0 0 720 390" role="img" aria-labelledby="simpson-title simpson-desc">
+              <title id="simpson-title">Simpson 悖论散点图</title>
+              <desc id="simpson-desc">三个组内都呈正相关，但合并数据后整体回归线呈负相关。</desc>
+            </svg>
+          </div>
+          <p id="simpson-message" class="chart-note" aria-live="polite"><strong>忽略组别：</strong>整体回归线向下，于是看起来 X 越大，Y 越小。</p>
+        </div>
+
+        <p>真正需要问的不是“哪个相关系数是真的”，而是：<strong>我要回答的是组内比较，还是总体比较？分组变量会不会同时影响样本构成和结果？</strong>在因果问题中，年龄、病情严重度、地区等混杂变量尤其不能随便丢掉。</p>
+      </section>
+
+      <section id="mvn" class="chapter">
+        <p class="section-kicker">3.2 · Multivariate Gaussian</p>
+        <h2>多元高斯：钟形曲线的高维版本</h2>
+        <p>一维高斯由均值 \(\mu\) 和方差 \(\sigma^2\) 决定。\(D\) 维高斯也一样，只是均值变成向量，方差变成协方差矩阵：</p>
+        <div class="formula">
+          \[\mathcal{N}(\mathbf{y}\mid\mu,\Sigma)=\frac{1}{(2\pi)^{D/2}|\Sigma|^{1/2}}\exp\left[-\frac12(\mathbf{y}-\mu)^T\Sigma^{-1}(\mathbf{y}-\mu)\right]\]
+          <small>不必一口吞下整条公式。前面的常数负责让总概率为 1；指数里的二次型负责决定每个点离中心“有多远”。</small>
+        </div>
+
+        <div class="inline-list">
+          <div class="concept"><b>\(\mu\)：中心</b><span>密度山峰的位置，也是点云的重心。</span></div>
+          <div class="concept"><b>\(\Sigma\)：形状</b><span>决定每个方向的宽度、相关性与旋转角度。</span></div>
+          <div class="concept"><b>\(|\Sigma|\)：体积</b><span>协方差椭球总体有多“大”，用于归一化密度。</span></div>
+        </div>
+
+        <h3>三种协方差，三种几何限制</h3>
+        <div class="two-col">
+          <div class="mini-panel">
+            <svg viewBox="0 0 300 170" role="img" aria-label="完整协方差产生旋转椭圆">
+              <ellipse cx="150" cy="87" rx="92" ry="37" transform="rotate(-25 150 87)" fill="#eaf0ff" stroke="#2d5bd1" stroke-width="3"/>
+              <ellipse cx="150" cy="87" rx="58" ry="23" transform="rotate(-25 150 87)" fill="none" stroke="#2d5bd1" stroke-width="2"/>
+              <circle cx="150" cy="87" r="4" fill="#172033"/>
+            </svg>
+            <h4>Full covariance</h4><p>非对角元素可以不为 0：椭圆能旋转，参数数目为 \(D(D+1)/2\)。</p>
+          </div>
+          <div class="mini-panel">
+            <svg viewBox="0 0 300 170" role="img" aria-label="对角协方差产生轴对齐椭圆">
+              <ellipse cx="150" cy="87" rx="52" ry="75" fill="#fff1e8" stroke="#d66b2c" stroke-width="3"/>
+              <ellipse cx="150" cy="87" rx="32" ry="46" fill="none" stroke="#d66b2c" stroke-width="2"/>
+              <circle cx="150" cy="87" r="4" fill="#172033"/>
+            </svg>
+            <h4>Diagonal covariance</h4><p>非对角元素全是 0：椭圆只能与坐标轴对齐，参数数目为 \(D\)。</p>
+          </div>
+          <div class="mini-panel">
+            <svg viewBox="0 0 300 170" role="img" aria-label="球形协方差产生圆">
+              <circle cx="150" cy="87" r="68" fill="#e4f5f2" stroke="#087f72" stroke-width="3"/>
+              <circle cx="150" cy="87" r="40" fill="none" stroke="#087f72" stroke-width="2"/>
+              <circle cx="150" cy="87" r="4" fill="#172033"/>
+            </svg>
+            <h4>Spherical covariance</h4><p>\(\Sigma=\sigma^2I\)：每个方向宽度相同，只剩 1 个自由参数。</p>
+          </div>
+          <div class="mini-panel">
+            <h4>如何读协方差矩阵？</h4>
+            <p style="text-align:center">
+              <span class="matrix" aria-label="二乘二协方差矩阵">
+                <span>σ²<sub>1</sub></span><span>ρσ<sub>1</sub>σ<sub>2</sub></span>
+                <span>ρσ<sub>1</sub>σ<sub>2</sub></span><span>σ²<sub>2</sub></span>
+              </span>
+            </p>
+            <p>对角线控制横、纵尺度；非对角线控制倾斜方向和强度。</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="mahalanobis" class="chapter">
+        <p class="section-kicker">3.2.2 · Geometry</p>
+        <h2>Mahalanobis 距离：让“远近”尊重数据形状</h2>
+        <p>欧氏距离默认所有方向的尺度都相同、彼此无关。多元高斯则用协方差矩阵把空间“拉直并标准化”，再量距离：</p>
+        <div class="formula">
+          \[\Delta^2=(\mathbf{y}-\mu)^T\Sigma^{-1}(\mathbf{y}-\mu)\]
+          <small>\(\Delta\) 相同的点具有相同密度，因此二维等密度线是椭圆。</small>
+        </div>
+
+        <div class="lab" id="ellipse-lab">
+          <div class="lab-header">
+            <div>
+              <h3>交互实验：点一下，比较两种距离</h3>
+              <p>先调整协方差，再点击图中任意位置。沿点云长轴走得远，可能仍然“不稀奇”；横穿短轴一点点，反而可能很异常。</p>
+            </div>
+            <span class="lab-number">4</span>
+          </div>
+          <div class="controls">
+            <div class="control">
+              <label for="erho-range">ρ <output id="erho-value">0.70</output></label>
+              <input id="erho-range" type="range" min="-0.9" max="0.9" value="0.7" step="0.05">
+            </div>
+            <div class="control">
+              <label for="esx-range">σ<sub>X</sub> <output id="esx-value">1.6</output></label>
+              <input id="esx-range" type="range" min="0.6" max="2.2" value="1.6" step="0.1">
+            </div>
+            <div class="control">
+              <label for="esy-range">σ<sub>Y</sub> <output id="esy-value">1.0</output></label>
+              <input id="esy-range" type="range" min="0.6" max="2.2" value="1" step="0.1">
+            </div>
+          </div>
+          <div class="chart-frame">
+            <svg id="ellipse-chart" viewBox="0 0 720 440" role="img" aria-labelledby="ellipse-title ellipse-desc">
+              <title id="ellipse-title">多元高斯等密度椭圆</title>
+              <desc id="ellipse-desc">调整相关系数与标准差可以改变椭圆方向和长短轴；点击图中位置可计算欧氏距离与马氏距离。</desc>
+            </svg>
+          </div>
+          <div class="stats" aria-live="polite">
+            <div class="stat"><span>点击点 (x, y)</span><b id="point-stat">(1.4, 1.0)</b></div>
+            <div class="stat"><span>欧氏距离</span><b id="euclid-stat">1.72</b></div>
+            <div class="stat"><span>Mahalanobis 距离 Δ</span><b id="maha-stat">1.00</b></div>
+          </div>
+        </div>
+
+        <p>从特征分解看，\(\Sigma\) 的<strong>特征向量</strong>给出椭圆方向，<strong>特征值</strong>给出对应方向的方差。用 \(\Sigma^{-1}\) 量距离，相当于先旋转到这些主方向，再把每个方向除以自己的标准差。</p>
+      </section>
+
+      <section id="condition" class="chapter">
+        <p class="section-kicker">3.2.3–3.2.5 · Gaussian operations</p>
+        <h2>边缘化是“压扁”，条件化是“切片”</h2>
+        <p>假设 \(\mathbf{y}=(\mathbf{y}_1,\mathbf{y}_2)\) 服从联合高斯。高斯最漂亮的性质之一，是边缘分布和条件分布仍然都是高斯。</p>
+
+        <div class="two-col">
+          <div class="mini-panel">
+            <h4>Marginalization · 压扁</h4>
+            <svg viewBox="0 0 320 200" role="img" aria-label="联合高斯沿一个方向投影得到边缘高斯">
+              <ellipse cx="128" cy="90" rx="85" ry="38" transform="rotate(-25 128 90)" fill="#eaf0ff" stroke="#2d5bd1" stroke-width="2"/>
+              <path d="M35 165 C70 165 74 110 128 110 C182 110 187 165 230 165" fill="none" stroke="#2d5bd1" stroke-width="3"/>
+              <path d="M55 125 L55 155 M200 125 L200 155" stroke="#8994a9" stroke-dasharray="4 4"/>
+              <text x="128" y="192" text-anchor="middle" class="diagram-note">把 y₂ 的概率“累加”到 y₁ 轴</text>
+            </svg>
+            <p>只取对应的均值块和协方差块：\(p(\mathbf y_1)=\mathcal N(\mu_1,\Sigma_{11})\)。</p>
+          </div>
+          <div class="mini-panel">
+            <h4>Conditioning · 切片再归一化</h4>
+            <svg viewBox="0 0 320 200" role="img" aria-label="固定第二个变量后，从联合高斯切片得到条件高斯">
+              <ellipse cx="128" cy="90" rx="85" ry="38" transform="rotate(-25 128 90)" fill="#fff1e8" stroke="#d66b2c" stroke-width="2"/>
+              <line x1="52" y1="72" x2="225" y2="72" stroke="#b73a4a" stroke-width="3"/>
+              <path d="M70 165 C95 165 98 112 139 112 C180 112 184 165 207 165" fill="none" stroke="#b73a4a" stroke-width="3"/>
+              <text x="128" y="192" text-anchor="middle" class="diagram-note">固定 y₂ 后，剩余不确定性通常变窄</text>
+            </svg>
+            <p>条件均值会随观测值移动，条件协方差减少；它不依赖具体观测值。</p>
+          </div>
+        </div>
+
+        <div class="formula">
+          \[\mu_{1\mid2}=\mu_1+\Sigma_{12}\Sigma_{22}^{-1}(\mathbf y_2-\mu_2)\]
+          \[\Sigma_{1\mid2}=\Sigma_{11}-\Sigma_{12}\Sigma_{22}^{-1}\Sigma_{21}\]
+          <small>“新均值 = 旧均值 + 相关强度 × 观测到的偏差”；“新不确定性 = 原不确定性 − 观测带来的信息”。</small>
+        </div>
+
+        <div class="lab" id="condition-lab">
+          <div class="lab-header">
+            <div>
+              <h3>交互实验：观察 Y₂ 后，Y₁ 会怎样？</h3>
+              <p>令两个变量均值为 0、标准差为 1。调整相关系数与观测值，观察条件均值和条件方差。</p>
+            </div>
+            <span class="lab-number">5</span>
+          </div>
+          <div class="controls" style="grid-template-columns:repeat(2,1fr)">
+            <div class="control">
+              <label for="crho-range">ρ <output id="crho-value">0.80</output></label>
+              <input id="crho-range" type="range" min="-0.95" max="0.95" value="0.8" step="0.05">
+            </div>
+            <div class="control">
+              <label for="obs-range">观测 y₂ <output id="obs-value">1.00</output></label>
+              <input id="obs-range" type="range" min="-2.5" max="2.5" value="1" step="0.1">
+            </div>
+          </div>
+          <div class="chart-frame">
+            <svg id="condition-chart" viewBox="0 0 720 360" role="img" aria-labelledby="condition-title condition-desc">
+              <title id="condition-title">一维边缘高斯与条件高斯比较</title>
+              <desc id="condition-desc">对比观察第二个变量前后的第一个变量分布，展示条件均值移动与方差缩小。</desc>
+            </svg>
+          </div>
+          <div class="legend">
+            <span><i class="swatch"></i>观测前：\(Y_1\sim\mathcal N(0,1)\)</span>
+            <span><i class="swatch orange"></i>观测后：\(Y_1\mid Y_2=y_2\)</span>
+          </div>
+          <div class="stats" aria-live="polite">
+            <div class="stat"><span>条件均值 ρy₂</span><b id="cmean-stat">0.80</b></div>
+            <div class="stat"><span>条件方差 1−ρ²</span><b id="cvar-stat">0.36</b></div>
+            <div class="stat"><span>条件标准差</span><b id="csd-stat">0.60</b></div>
+          </div>
+        </div>
+
+        <h3>一个具体例子：为什么观察能减少不确定性？</h3>
+        <p>设 \(\rho=0.8\)，并观察到 \(y_2=1\)。那么 \(Y_1\) 的条件均值从 0 移到 \(0.8\)，条件方差从 1 降到 \(1-0.8^2=0.36\)。因为两个变量高度相关，看到 \(Y_2\) 偏高，我们就有理由相信 \(Y_1\) 也偏高；同时猜测范围会收窄。</p>
+
+        <h3>缺失值插补就是同一个想法</h3>
+        <ol class="step-list">
+          <li><strong>把已观察维度记作 \(\mathbf y_v\)</strong>，缺失维度记作 \(\mathbf y_h\)。</li>
+          <li><strong>计算条件分布 \(p(\mathbf y_h\mid\mathbf y_v)\)</strong>，利用协方差矩阵里记录的变量关系。</li>
+          <li><strong>用条件均值作最佳平方误差猜测</strong>，并用条件方差表达这次猜测有多不确定。</li>
+        </ol>
+        <div class="plain-language warning">
+          <strong>别把插补值当成真实观测。</strong>条件均值只是“给定模型与已知信息后的最佳猜测”；如果下游分析忽略条件方差，就会显得比实际更自信。
+        </div>
+      </section>
+
+      <section class="chapter" aria-labelledby="check-title">
+        <p class="section-kicker">检查直觉</p>
+        <h2 id="check-title">三道题，确认你不是只看懂了图</h2>
+
+        <div class="quiz" data-answer="b">
+          <p><strong>1.</strong> 若 \(\operatorname{corr}(X,Y)=0\)，可以确定什么？</p>
+          <div class="quiz-options"><button data-choice="a">X 与 Y 独立</button><button data-choice="b">没有线性相关，但可能非线性依赖</button></div>
+          <p class="feedback" aria-live="polite"></p>
+        </div>
+        <div class="quiz" data-answer="a">
+          <p><strong>2.</strong> 把 \(Y\) 的单位从米改成厘米，哪一个量通常会改变？</p>
+          <div class="quiz-options"><button data-choice="a">Cov(X,Y)</button><button data-choice="b">corr(X,Y)</button></div>
+          <p class="feedback" aria-live="polite"></p>
+        </div>
+        <div class="quiz" data-answer="b">
+          <p><strong>3.</strong> 在相关的联合高斯中，观察 \(Y_2\) 后，\(Y_1\) 的条件方差通常怎样？</p>
+          <div class="quiz-options"><button data-choice="a">一定增大</button><button data-choice="b">小于或等于边缘方差</button></div>
+          <p class="feedback" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section id="recap" class="recap">
+        <h2>最后复盘：请带走这 7 句话</h2>
+        <ul>
+          <li>联合分布描述多个随机变量如何一起变化。</li>
+          <li>协方差有单位；相关系数是标准化后的协方差，范围是 \([-1,1]\)。</li>
+          <li>相关系数主要测线性关系：独立必然不相关，但不相关未必独立。</li>
+          <li>相关不能自动解释因果，隐藏共同原因与分组结构都可能误导我们。</li>
+          <li>多元高斯的 \(\mu\) 决定中心，\(\Sigma\) 决定尺度、方向和相关性。</li>
+          <li>Mahalanobis 距离是在协方差几何中测量“异常程度”。</li>
+          <li>高斯的边缘分布与条件分布仍是高斯；条件化会利用相关性移动均值并减少不确定性。</li>
+        </ul>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    内容依据 Kevin P. Murphy, <em>Probabilistic Machine Learning: An Introduction</em>, §§3.1–3.2 整理与重新讲解。页面中的示意图与交互均为本页重新绘制，用于课程学习。
+  </footer>
+
+  <script>
+    (() => {
+      const NS = 'http://www.w3.org/2000/svg';
+      const $ = (id) => document.getElementById(id);
+      const colors = { ink: '#172033', muted: '#69758c', blue: '#2d5bd1', orange: '#d66b2c', teal: '#087f72', purple: '#7451b8', grid: '#e3e7f0', red: '#b73a4a' };
+      const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+      const svgEl = (name, attrs = {}) => {
+        const el = document.createElementNS(NS, name);
+        Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
+        return el;
+      };
+      const add = (parent, name, attrs = {}, text = '') => {
+        const el = svgEl(name, attrs);
+        if (text) el.textContent = text;
+        parent.appendChild(el);
+        return el;
+      };
+      const gaussianPdf = (x, mean, sd) => Math.exp(-0.5 * ((x - mean) / sd) ** 2) / (sd * Math.sqrt(2 * Math.PI));
+      const fmt = (n) => (Math.abs(n) < .005 ? 0 : n).toFixed(2);
+
+      function axes(svg, box, xLabel = 'X', yLabel = 'Y') {
+        const { x, y, w, h } = box;
+        for (let i = 0; i <= 8; i++) {
+          const gx = x + i * w / 8;
+          const gy = y + i * h / 8;
+          add(svg, 'line', { x1: gx, y1: y, x2: gx, y2: y + h, stroke: colors.grid, 'stroke-width': 1 });
+          add(svg, 'line', { x1: x, y1: gy, x2: x + w, y2: gy, stroke: colors.grid, 'stroke-width': 1 });
+        }
+        add(svg, 'line', { x1: x, y1: y + h / 2, x2: x + w, y2: y + h / 2, stroke: colors.muted, 'stroke-width': 1.2 });
+        add(svg, 'line', { x1: x + w / 2, y1: y, x2: x + w / 2, y2: y + h, stroke: colors.muted, 'stroke-width': 1.2 });
+        add(svg, 'text', { x: x + w - 8, y: y + h / 2 - 10, 'text-anchor': 'end', fill: colors.ink, 'font-size': 14, 'font-weight': 700 }, xLabel);
+        add(svg, 'text', { x: x + w / 2 + 11, y: y + 18, fill: colors.ink, 'font-size': 14, 'font-weight': 700 }, yLabel);
+      }
+
+      function seededNormals(count, seed = 24681357) {
+        let s = seed >>> 0;
+        const rand = () => {
+          s = (1664525 * s + 1013904223) >>> 0;
+          return (s + 1) / 4294967297;
+        };
+        const out = [];
+        while (out.length < count) {
+          const u1 = Math.max(rand(), 1e-9), u2 = rand();
+          const r = Math.sqrt(-2 * Math.log(u1));
+          out.push([r * Math.cos(2 * Math.PI * u2), r * Math.sin(2 * Math.PI * u2)]);
+        }
+        return out;
+      }
+      const baseNormals = seededNormals(180);
+
+      function drawCovariance() {
+        const svg = $('cov-chart');
+        svg.replaceChildren();
+        const rho = +$('rho-range').value, sx = +$('sx-range').value, sy = +$('sy-range').value;
+        $('rho-value').value = fmt(rho); $('sx-value').value = sx.toFixed(1); $('sy-value').value = sy.toFixed(1);
+        $('cov-stat').textContent = fmt(rho * sx * sy);
+        $('corr-stat').textContent = fmt(rho);
+        $('slope-stat').textContent = fmt(rho * sy / sx);
+        const box = { x: 65, y: 25, w: 610, h: 315 };
+        axes(svg, box);
+        const maxRange = 7;
+        const mapX = x => box.x + box.w * (.5 + x / (2 * maxRange));
+        const mapY = y => box.y + box.h * (.5 - y / (2 * maxRange));
+        const group = add(svg, 'g', { 'aria-hidden': 'true' });
+        baseNormals.forEach(([z1, z2]) => {
+          const x = sx * z1;
+          const y = sy * (rho * z1 + Math.sqrt(1 - rho * rho) * z2);
+          add(group, 'circle', { cx: mapX(x), cy: mapY(y), r: 3.1, fill: colors.blue, opacity: .58 });
+        });
+        const slope = rho * sy / sx;
+        const xa = -3.2 * sx, xb = 3.2 * sx;
+        add(svg, 'line', { x1: mapX(xa), y1: mapY(slope * xa), x2: mapX(xb), y2: mapY(slope * xb), stroke: colors.orange, 'stroke-width': 3 });
+        add(svg, 'text', { x: box.x + 10, y: box.y + 22, fill: colors.orange, 'font-size': 13, 'font-weight': 700 }, '回归趋势线');
+      }
+      ['rho-range', 'sx-range', 'sy-range'].forEach(id => $(id).addEventListener('input', drawCovariance));
+
+      function drawNonlinear() {
+        const svg = $('nonlinear-chart'); svg.replaceChildren();
+        const box = { x: 65, y: 25, w: 610, h: 250 };
+        axes(svg, box);
+        const mapX = x => box.x + box.w * (.5 + x / 4.6);
+        const mapY = y => box.y + box.h * (1 - (y + .2) / 1.7);
+        for (let i = 0; i < 150; i++) {
+          const x = -2 + 4 * i / 149;
+          const noise = Math.sin(i * 12.9898) * .045;
+          const y = x * x / 3 + noise;
+          add(svg, 'circle', { cx: mapX(x), cy: mapY(y), r: 3, fill: x < 0 ? colors.purple : colors.teal, opacity: .72 });
+        }
+        add(svg, 'line', { x1: mapX(-2), y1: mapY(.67), x2: mapX(2), y2: mapY(.67), stroke: colors.orange, 'stroke-width': 3, 'stroke-dasharray': '8 6' });
+        add(svg, 'text', { x: 82, y: 48, fill: colors.ink, 'font-size': 15, 'font-weight': 700 }, 'Y = X² / 3');
+        add(svg, 'text', { x: 500, y: 48, fill: colors.orange, 'font-size': 13, 'font-weight': 700 }, '线性趋势 ≈ 0');
+        add(svg, 'text', { x: 360, y: 315, 'text-anchor': 'middle', fill: colors.muted, 'font-size': 13 }, 'X 完全决定 Y，但 corr(X,Y) ≈ 0');
+      }
+
+      const simpsonGroups = [
+        { color: colors.blue, points: [[1,7.1],[1.4,7.5],[1.9,7.8],[2.3,8.3],[2.8,8.5],[3.1,8.9]] },
+        { color: colors.orange, points: [[3.1,4.3],[3.6,4.7],[4,5.0],[4.5,5.3],[5,5.8],[5.4,6.0]] },
+        { color: colors.teal, points: [[5.4,1.5],[5.9,1.9],[6.4,2.1],[6.9,2.6],[7.4,2.9],[7.9,3.2]] }
+      ];
+      function regression(points) {
+        const mx = points.reduce((s,p)=>s+p[0],0)/points.length;
+        const my = points.reduce((s,p)=>s+p[1],0)/points.length;
+        const num = points.reduce((s,p)=>s+(p[0]-mx)*(p[1]-my),0);
+        const den = points.reduce((s,p)=>s+(p[0]-mx)**2,0);
+        const b = num/den, a = my-b*mx;
+        return {a,b};
+      }
+      let showGroups = false;
+      function drawSimpson() {
+        const svg = $('simpson-chart'); svg.replaceChildren();
+        const box = { x: 65, y: 25, w: 610, h: 310 }; axes(svg, box);
+        const mapX = x => box.x + box.w * x / 9;
+        const mapY = y => box.y + box.h * (1 - y / 10);
+        simpsonGroups.forEach(group => group.points.forEach(p => add(svg, 'circle', { cx: mapX(p[0]), cy: mapY(p[1]), r: 6, fill: showGroups ? group.color : colors.blue, opacity: showGroups ? .85 : .63 })));
+        if (showGroups) {
+          simpsonGroups.forEach((group, i) => {
+            const r = regression(group.points), x1 = group.points[0][0]-.15, x2 = group.points.at(-1)[0]+.15;
+            add(svg, 'line', { x1: mapX(x1), y1: mapY(r.a+r.b*x1), x2: mapX(x2), y2: mapY(r.a+r.b*x2), stroke: group.color, 'stroke-width': 4 });
+            add(svg, 'text', { x: mapX((x1+x2)/2), y: mapY(r.a+r.b*x2)-10, 'text-anchor': 'middle', fill: group.color, 'font-size': 13, 'font-weight': 700 }, `组 ${i+1}：正趋势`);
+          });
+        } else {
+          const all = simpsonGroups.flatMap(g=>g.points), r = regression(all), x1=.8, x2=8.2;
+          add(svg, 'line', { x1: mapX(x1), y1: mapY(r.a+r.b*x1), x2: mapX(x2), y2: mapY(r.a+r.b*x2), stroke: colors.red, 'stroke-width': 4 });
+          add(svg, 'text', { x: 460, y: 72, fill: colors.red, 'font-size': 14, 'font-weight': 700 }, '整体：负趋势');
+        }
+      }
+      function setSimpson(groups) {
+        showGroups = groups;
+        $('overall-btn').setAttribute('aria-pressed', String(!groups));
+        $('groups-btn').setAttribute('aria-pressed', String(groups));
+        $('simpson-message').innerHTML = groups
+          ? '<strong>保留组别：</strong>三个组各自的回归线都向上；组内比较的结论与总体比较相反。'
+          : '<strong>忽略组别：</strong>整体回归线向下，于是看起来 X 越大，Y 越小。';
+        drawSimpson();
+      }
+      $('overall-btn').addEventListener('click', () => setSimpson(false));
+      $('groups-btn').addEventListener('click', () => setSimpson(true));
+
+      let clickedPoint = [1.4, 1.0];
+      function eigen2(a,b,d) {
+        const tr=a+d, disc=Math.sqrt((a-d)**2+4*b*b);
+        const l1=(tr+disc)/2, l2=(tr-disc)/2;
+        const theta=.5*Math.atan2(2*b,a-d);
+        return {l1,l2,theta};
+      }
+      function drawEllipse() {
+        const svg = $('ellipse-chart'); svg.replaceChildren();
+        const rho=+$('erho-range').value, sx=+$('esx-range').value, sy=+$('esy-range').value;
+        $('erho-value').value=fmt(rho); $('esx-value').value=sx.toFixed(1); $('esy-value').value=sy.toFixed(1);
+        const box={x:80,y:25,w:560,h:360}; axes(svg,box);
+        const scale=55, cx=box.x+box.w/2, cy=box.y+box.h/2;
+        const a=sx*sx,b=rho*sx*sy,d=sy*sy;
+        const e=eigen2(a,b,d);
+        [1,2,3].reverse().forEach(k => add(svg,'ellipse',{
+          cx,cy,rx:k*Math.sqrt(e.l1)*scale,ry:k*Math.sqrt(e.l2)*scale,
+          transform:`rotate(${-e.theta*180/Math.PI} ${cx} ${cy})`,
+          fill:k===3?'#eaf0ff':'none',opacity:k===3?.55:1,stroke:colors.blue,'stroke-width':k===1?3:1.5
+        }));
+        add(svg,'circle',{cx,cy,r:4,fill:colors.ink});
+        const px=cx+clickedPoint[0]*scale, py=cy-clickedPoint[1]*scale;
+        add(svg,'line',{x1:cx,y1:cy,x2:px,y2:py,stroke:colors.orange,'stroke-width':2,'stroke-dasharray':'6 5'});
+        add(svg,'circle',{cx:px,cy:py,r:7,fill:colors.orange,stroke:'#fff','stroke-width':3});
+        add(svg,'text',{x:px+12,y:py-10,fill:colors.orange,'font-size':13,'font-weight':700},'点击点');
+        const [x,y]=clickedPoint;
+        const det=a*d-b*b;
+        const md2=(d*x*x-2*b*x*y+a*y*y)/det;
+        $('point-stat').textContent=`(${x.toFixed(1)}, ${y.toFixed(1)})`;
+        $('euclid-stat').textContent=Math.sqrt(x*x+y*y).toFixed(2);
+        $('maha-stat').textContent=Math.sqrt(Math.max(0,md2)).toFixed(2);
+        add(svg,'text',{x:box.x+8,y:box.y+20,fill:colors.muted,'font-size':12},'等密度线：Δ = 1, 2, 3');
+      }
+      ['erho-range','esx-range','esy-range'].forEach(id=>$(id).addEventListener('input',drawEllipse));
+      $('ellipse-chart').addEventListener('click', (event) => {
+        const svg=$('ellipse-chart'), rect=svg.getBoundingClientRect();
+        const ux=(event.clientX-rect.left)*720/rect.width, uy=(event.clientY-rect.top)*440/rect.height;
+        clickedPoint=[clamp((ux-360)/55,-4.5,4.5),clamp((205-uy)/55,-3.2,3.2)];
+        drawEllipse();
+      });
+
+      function drawCondition() {
+        const svg=$('condition-chart'); svg.replaceChildren();
+        const rho=+$('crho-range').value, obs=+$('obs-range').value;
+        $('crho-value').value=fmt(rho); $('obs-value').value=fmt(obs);
+        const mean=rho*obs, variance=1-rho*rho, sd=Math.sqrt(variance);
+        $('cmean-stat').textContent=fmt(mean); $('cvar-stat').textContent=fmt(variance); $('csd-stat').textContent=fmt(sd);
+        const box={x:65,y:28,w:610,h:270};
+        for(let i=0;i<=6;i++){
+          const gy=box.y+i*box.h/6;
+          add(svg,'line',{x1:box.x,y1:gy,x2:box.x+box.w,y2:gy,stroke:colors.grid,'stroke-width':1});
+        }
+        add(svg,'line',{x1:box.x,y1:box.y+box.h,x2:box.x+box.w,y2:box.y+box.h,stroke:colors.muted,'stroke-width':1.2});
+        const mapX=x=>box.x+box.w*(x+4)/8;
+        const ymax=Math.max(.75,gaussianPdf(mean,mean,sd)*1.08);
+        const mapY=y=>box.y+box.h*(1-y/ymax);
+        const pathFor=(m,s)=>{
+          let d='';
+          for(let i=0;i<=220;i++){
+            const x=-4+8*i/220, y=gaussianPdf(x,m,s);
+            d+=`${i?'L':'M'}${mapX(x).toFixed(2)},${mapY(y).toFixed(2)} `;
+          }
+          return d;
+        };
+        add(svg,'path',{d:pathFor(0,1),fill:'none',stroke:colors.blue,'stroke-width':4});
+        add(svg,'path',{d:pathFor(mean,sd),fill:'none',stroke:colors.orange,'stroke-width':4});
+        add(svg,'line',{x1:mapX(mean),y1:box.y,x2:mapX(mean),y2:box.y+box.h,stroke:colors.orange,'stroke-width':1.5,'stroke-dasharray':'5 5'});
+        [-4,-2,0,2,4].forEach(x=>{
+          add(svg,'line',{x1:mapX(x),y1:box.y+box.h,x2:mapX(x),y2:box.y+box.h+7,stroke:colors.muted});
+          add(svg,'text',{x:mapX(x),y:box.y+box.h+25,'text-anchor':'middle',fill:colors.muted,'font-size':12},String(x));
+        });
+        add(svg,'text',{x:mapX(mean),y:box.y+18,'text-anchor':'middle',fill:colors.orange,'font-size':13,'font-weight':700},`新均值 ${fmt(mean)}`);
+        add(svg,'text',{x:box.x+box.w/2,y:345,'text-anchor':'middle',fill:colors.ink,'font-size':13,'font-weight':700},'Y₁ 的可能取值');
+      }
+      ['crho-range','obs-range'].forEach(id=>$(id).addEventListener('input',drawCondition));
+
+      document.querySelectorAll('.quiz').forEach(quiz => {
+        quiz.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
+          const ok=btn.dataset.choice===quiz.dataset.answer;
+          const feedback=quiz.querySelector('.feedback');
+          feedback.className=`feedback ${ok?'correct':'wrong'}`;
+          feedback.textContent=ok?'正确。你抓住了这节最容易混淆的区别。':'再想一下：区分线性关系与一般依赖，或区分带单位与标准化后的量。';
+        }));
+      });
+
+      const sections=[...document.querySelectorAll('main section[id]')];
+      const links=[...document.querySelectorAll('.toc a')];
+      const observer=new IntersectionObserver(entries=>{
+        const visible=entries.filter(e=>e.isIntersecting).sort((a,b)=>b.intersectionRatio-a.intersectionRatio)[0];
+        if(!visible)return;
+        links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')===`#${visible.target.id}`));
+      },{rootMargin:'-20% 0px -65% 0px',threshold:[0,.1,.5]});
+      sections.forEach(s=>observer.observe(s));
+
+      drawCovariance(); drawNonlinear(); drawSimpson(); drawEllipse(); drawCondition();
+    })();
+  </script>
+</body>
+</html>
