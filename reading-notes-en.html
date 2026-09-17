@@ -330,7 +330,7 @@
           \[\hat\sigma^2_{\mathrm{MLE}}=\frac1N\sum_{n=1}^{N}(x_n-\bar x)^2,\qquad
           \mathbb E[\hat\sigma^2_{\mathrm{MLE}}]=\frac{N-1}{N}\sigma^2\]
           \[\hat\sigma^2_{\mathrm{unb}}=\frac1{N-1}\sum_{n=1}^{N}(x_n-\bar x)^2\]
-          <small>Estimating (ar x) uses one degree of freedom. Dividing by (N-1) corrects the average downward bias.</small>
+          <small>Estimating (\bar x) uses one degree of freedom. Dividing by (N-1) corrects the average downward bias.</small>
         </div>
       </section>
 
@@ -353,7 +353,7 @@
       <section id="shrinkage" class="chapter">
         <p class="section-kicker">4.7.6.4–4.7.6.5 · MAP and regularization</p>
         <h2>Shrinkage trades a little accuracy for stability</h2>
-        <p>Suppose (x_n\sim\mathcal N(\theta^*,\sigma^2)). The sample mean is the MLE. A Gaussian prior centered at (	heta_0) produces a MAP estimate that averages the data and prior:</p>
+        <p>Suppose (x_n\sim\mathcal N(\theta^*,\sigma^2)). The sample mean is the MLE. A Gaussian prior centered at (\theta_0) produces a MAP estimate that averages the data and prior:</p>
         <div class="formula">
           \[\tilde x=w\bar x+(1-w)\theta_0,\qquad 0\le w\le1\]
           \[\operatorname{bias}(\tilde x)=(1-w)(\theta_0-\theta^*),\qquad
@@ -361,7 +361,7 @@
           <small>(w=1) gives the MLE. Smaller (w) trusts the prior more strongly.</small>
         </div>
         <div class="lab" id="shrinkage-lab">
-          <div class="lab-header"><div><h3>Interactive experiment: when does a biased estimate win?</h3><p>The truth is (	heta^*=1) and (sigma^2=1). Adjust sample size, data weight, and prior mean.</p></div><span class="lab-number">5</span></div>
+          <div class="lab-header"><div><h3>Interactive experiment: when does a biased estimate win?</h3><p>The truth is (\theta^*=1) and (\sigma^2=1). Adjust sample size, data weight, and prior mean.</p></div><span class="lab-number">5</span></div>
           <div class="controls">
             <div class="control"><label for="n-range">Sample size N <output id="n-value">5</output></label><input id="n-range" type="range" min="1" max="80" value="5" step="1"></div>
             <div class="control"><label for="w-range">Data weight w <output id="w-value">0.70</output></label><input id="w-range" type="range" min="0" max="1" value="0.7" step="0.02"></div>
