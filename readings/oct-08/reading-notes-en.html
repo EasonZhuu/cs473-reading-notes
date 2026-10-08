@@ -1,0 +1,322 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="CS473 bilingual interactive notes on mutual information, conditional MI, Gaussian dependence, data processing, and sufficient statistics. Covers 6.3 excluding 6.3.6, 6.3.7, and 6.3.10."><title>CS 473 · 互信息 / Mutual Information</title><script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']]},options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']}};</script><script async id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script><style>
+    :root {
+      --ink: #18201f;
+      --muted: #5d6865;
+      --paper: #f6f7f4;
+      --surface: #ffffff;
+      --line: #d8ddd8;
+      --teal: #087f72;
+      --teal-soft: #e3f4f0;
+      --coral: #dc6547;
+      --coral-soft: #fff0eb;
+      --gold: #b47a0b;
+      --gold-soft: #fff6dc;
+      --blue: #3c66c4;
+      --purple: #7752b6;
+      --red: #b23b4b;
+      --shadow: 0 18px 48px rgba(28, 50, 45, .10);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background-color: var(--paper);
+      background-image:
+        linear-gradient(rgba(8,127,114,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(8,127,114,.04) 1px, transparent 1px);
+      background-size: 32px 32px;
+      font-family: Inter, "Noto Sans SC", "Microsoft YaHei", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 17px;
+      line-height: 1.76;
+    }
+    a { color: var(--teal); text-underline-offset: 3px; }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    svg { display: block; width: 100%; height: auto; }
+    .skip-link { position: absolute; top: -5rem; left: 1rem; z-index: 10; padding: .6rem .9rem; color: white; background: var(--ink); border-radius: 9px; }
+    .skip-link:focus { top: 1rem; }
+
+    .hero { position: relative; overflow: hidden; color: white; background: #173532; border-bottom: 5px solid var(--coral); }
+    .hero::after {
+      content: "∑";
+      position: absolute;
+      right: max(3vw, 1rem);
+      bottom: -6rem;
+      color: rgba(255,255,255,.055);
+      font-family: Georgia, "Noto Serif SC", "Songti SC", serif;
+      font-size: clamp(15rem, 30vw, 30rem);
+      line-height: 1;
+      pointer-events: none;
+    }
+    .hero-inner { position: relative; z-index: 1; max-width: 1180px; margin: 0 auto; padding: 4.2rem 2rem 3.8rem; }
+    .eyebrow { display: flex; align-items: center; gap: .55rem; margin: 0 0 1rem; color: #bfe4dd; font-size: .8rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+    .eyebrow::before { content: ""; width: 2rem; height: 3px; background: var(--coral); }
+    h1 { max-width: 940px; margin: 0; font-family: Georgia, "Noto Serif SC", "Songti SC", serif; font-size: clamp(2.45rem, 6vw, 5.2rem); line-height: 1.02; letter-spacing: -.045em; }
+    .hero-lead { max-width: 760px; margin: 1.3rem 0 0; color: #d7e9e5; font-size: clamp(1.03rem, 2vw, 1.27rem); line-height: 1.65; }
+    .hero-tags { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1.7rem; }
+    .hero-tags span { padding: .32rem .68rem; border: 1px solid rgba(255,255,255,.25); border-radius: 999px; font-size: .8rem; }
+    .language-switch { display: flex; gap: .45rem; align-items: center; margin-top: 1.2rem; font-size: .84rem; }
+    .language-switch a, .language-switch strong { padding: .32rem .72rem; border: 1px solid rgba(255,255,255,.35); border-radius: 999px; }
+    .language-switch a { color: white; text-decoration: none; }
+    .language-switch a:hover { background: rgba(255,255,255,.12); }
+    .language-switch strong { color: #173532; background: white; }
+
+    .page-shell { display: grid; grid-template-columns: 230px minmax(0, 820px); gap: clamp(2rem, 6vw, 5.5rem); align-items: start; max-width: 1180px; margin: 0 auto; padding: 3rem 2rem 6rem; }
+    .toc { position: sticky; top: 1.5rem; padding: 1rem 0; }
+    .toc strong { display: block; margin-bottom: .7rem; color: var(--muted); font-size: .75rem; letter-spacing: .12em; text-transform: uppercase; }
+    .toc a { display: block; padding: .42rem .7rem; color: var(--muted); border-left: 2px solid var(--line); text-decoration: none; font-size: .87rem; line-height: 1.35; }
+    .toc a:hover, .toc a.active { color: var(--teal); border-left-color: var(--teal); background: var(--teal-soft); }
+    main { min-width: 0; }
+    section { scroll-margin-top: 1.5rem; }
+    .chapter { margin-top: 4.8rem; }
+    .chapter:first-child { margin-top: 0; }
+    .section-kicker { margin: 0 0 .45rem; color: var(--teal); font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    h2, h3 { font-family: Georgia, "Noto Serif SC", "Songti SC", serif; letter-spacing: -.025em; line-height: 1.23; }
+    h2 { margin: 0 0 1.2rem; font-size: clamp(1.9rem, 4vw, 3rem); }
+    h3 { margin: 2.7rem 0 .8rem; font-size: clamp(1.3rem, 2.5vw, 1.78rem); }
+    p { margin: .8rem 0; }
+    .lead { color: #354441; font-size: 1.09rem; }
+    .plain-language { margin: 1.5rem 0; padding: 1.15rem 1.3rem; background: var(--teal-soft); border-left: 4px solid var(--teal); border-radius: 0 12px 12px 0; }
+    .plain-language strong { color: #075f56; }
+    .warning { background: var(--coral-soft); border-left-color: var(--coral); }
+    .warning strong { color: #99432d; }
+    .formula { overflow-x: auto; margin: 1.3rem 0; padding: 1.15rem 1.3rem; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 7px 22px rgba(28,50,45,.05); text-align: center; }
+    .formula small { display: block; margin-top: .5rem; color: var(--muted); text-align: left; }
+    .concept-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .8rem; margin: 1.3rem 0; }
+    .concept { padding: 1rem; background: var(--surface); border-top: 4px solid var(--teal); box-shadow: var(--shadow); }
+    .concept:nth-child(2) { border-top-color: var(--coral); }
+    .concept:nth-child(3) { border-top-color: var(--gold); }
+    .concept b { display: block; margin-bottom: .25rem; }
+    .concept span { color: var(--muted); font-size: .87rem; line-height: 1.5; }
+
+    .lab { margin: 2rem 0 2.5rem; padding: clamp(1rem, 3vw, 1.6rem); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .lab-header { display: flex; gap: 1rem; align-items: flex-start; justify-content: space-between; margin-bottom: 1rem; }
+    .lab-header h3 { margin: 0; font-size: 1.3rem; }
+    .lab-header p { margin: .25rem 0 0; color: var(--muted); font-size: .88rem; line-height: 1.5; }
+    .lab-number { flex: 0 0 auto; display: grid; width: 2.3rem; height: 2.3rem; place-items: center; color: white; background: var(--ink); border-radius: 50%; font-weight: 800; }
+    .controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1rem 0; padding: .9rem 1rem; background: #f2f5f2; border-radius: 12px; }
+    .control label { display: flex; justify-content: space-between; gap: .5rem; margin-bottom: .32rem; color: var(--muted); font-size: .8rem; font-weight: 750; }
+    input[type="range"] { width: 100%; accent-color: var(--teal); }
+    .chart-frame { overflow: hidden; background: #fbfdfc; border: 1px solid var(--line); border-radius: 12px; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: .65rem; margin-top: 1rem; }
+    .stat { padding: .7rem .8rem; background: #f5f7f5; border: 1px solid var(--line); border-radius: 10px; }
+    .stat span { display: block; color: var(--muted); font-size: .72rem; line-height: 1.35; }
+    .stat b { font-size: 1.08rem; }
+    .chart-note { margin: .7rem 0 0; color: var(--muted); font-size: .82rem; line-height: 1.55; }
+    .legend { display: flex; flex-wrap: wrap; gap: 1rem; margin: .65rem 0; color: var(--muted); font-size: .8rem; }
+    .legend span { display: inline-flex; align-items: center; gap: .4rem; }
+    .swatch { width: .85rem; height: .85rem; border-radius: 50%; background: var(--teal); }
+    .swatch.coral { background: var(--coral); }
+    .swatch.gold { background: var(--gold); }
+    .swatch.blue { background: var(--blue); }
+    .toggle-row { display: flex; flex-wrap: wrap; gap: .6rem; margin: .8rem 0; }
+    .toggle-row button, .quiz button { padding: .52rem .82rem; color: var(--ink); background: white; border: 1px solid #b9c3be; border-radius: 9px; }
+    .toggle-row button[aria-pressed="true"], .quiz button:hover { color: white; background: var(--teal); border-color: var(--teal); }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; }
+    .mini-panel { padding: 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+    .mini-panel h4 { margin: 0 0 .35rem; font-size: 1rem; }
+    .mini-panel p { margin: .3rem 0; color: var(--muted); font-size: .86rem; }
+    .step-list { counter-reset: steps; padding: 0; list-style: none; }
+    .step-list li { position: relative; margin: 1rem 0; padding-left: 3rem; }
+    .step-list li::before { counter-increment: steps; content: counter(steps); position: absolute; left: 0; top: .05rem; display: grid; width: 2rem; height: 2rem; place-items: center; color: white; background: var(--teal); border-radius: 50%; font-weight: 800; }
+    .quiz { margin: 1rem 0; padding: 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+    .quiz p { margin-top: 0; }
+    .quiz-options { display: flex; flex-wrap: wrap; gap: .6rem; }
+    .feedback { min-height: 1.7rem; margin: .65rem 0 0; color: var(--muted); font-size: .9rem; }
+    .feedback.correct { color: var(--teal); font-weight: 700; }
+    .feedback.wrong { color: var(--red); font-weight: 700; }
+    .recap { margin-top: 4rem; padding: 1.5rem; color: white; background: #173532; border-radius: var(--radius); }
+    .recap h2 { margin-bottom: .8rem; font-size: 1.75rem; }
+    .recap ul { margin-bottom: 0; padding-left: 1.25rem; }
+    .recap li { margin: .5rem 0; }
+    footer { max-width: 820px; margin: 0 auto; padding: 0 2rem 3rem; color: var(--muted); font-size: .78rem; text-align: center; }
+
+    @media (max-width: 880px) {
+      .page-shell { grid-template-columns: 1fr; }
+      .toc { position: static; display: flex; overflow-x: auto; gap: .25rem; padding: .5rem 0; }
+      .toc strong { display: none; }
+      .toc a { flex: 0 0 auto; border: 0; border-bottom: 2px solid var(--line); }
+      .toc a:hover, .toc a.active { border-bottom-color: var(--teal); }
+    }
+    @media (max-width: 640px) {
+      body { font-size: 16px; }
+      .hero-inner, .page-shell { padding-left: 1rem; padding-right: 1rem; }
+      .hero-inner { padding-top: 3rem; padding-bottom: 3rem; }
+      .concept-grid, .two-col, .controls, .stats { grid-template-columns: 1fr; }
+      .chapter { margin-top: 3.7rem; }
+    }
+    @media print {
+      body { background: white; }
+      .hero { color: var(--ink); background: white; border-bottom: 2px solid var(--ink); }
+      .hero-lead, .eyebrow { color: var(--muted); }
+      .hero-tags span { color: var(--ink); border-color: var(--line); }
+      .hero::after, .toc, .controls, .toggle-row, .quiz { display: none; }
+      .page-shell { display: block; max-width: 850px; padding-top: 2rem; }
+      .lab, .concept { box-shadow: none; break-inside: avoid; }
+    }
+  
+.bilingual {display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin:.9rem 0}
+.bilingual p {margin:0}.en {color:var(--muted)}
+body[data-language="zh"] .en,body[data-language="en"] .zh {display:none}
+body[data-language="zh"] .bilingual,body[data-language="en"] .bilingual {grid-template-columns:1fr}
+.hero .en {color:#d7e9e5}.recap .en {color:#d7e9e5}
+.language-switch button {border:1px solid #ffffff70;border-radius:999px;padding:.35rem .7rem;color:white;background:transparent}
+.language-switch button[aria-pressed="true"] {color:#173532;background:white}
+h1 .en,h2 .en,h3 .en {display:block;font-size:.6em;margin-top:.5rem;letter-spacing:0}
+.recap .formula {color:var(--ink)}
+.table-wrap {overflow:auto}table {width:100%;border-collapse:collapse;background:white;margin:1rem 0}
+th,td {border:1px solid var(--line);padding:.6rem;text-align:center}
+.focus {border:2px solid var(--coral);padding:1.2rem;border-radius:18px;background:#fffaf6}
+.source {font-size:.82rem;color:var(--muted)}.control input[type="number"] {width:100%;padding:.3rem;border:1px solid var(--line);border-radius:6px}
+.lab .bilingual {font-size:.9rem}.stats {grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+.legend-line {width:1.2rem;height:3px;display:inline-block;background:var(--teal);vertical-align:middle;margin-right:.3rem}
+.legend-line.coral {background:var(--coral)}.legend-line.blue {background:var(--blue)}
+.toc a {font-size:.8rem}.quiz .feedback {min-height:2rem}.formula {font-size:.95rem}
+:focus-visible {outline:3px solid var(--gold);outline-offset:4px}
+@media(max-width:640px){.bilingual {grid-template-columns:1fr;gap:.6rem}.en{border-left:2px solid var(--line);padding-left:.7rem}.hero-inner{padding-top:2.5rem;padding-bottom:2rem}}
+@media(prefers-reduced-motion:reduce){html {scroll-behavior:auto}}
+
+.control select {width:100%;padding:.45rem;color:var(--ink);border:1px solid var(--line);border-radius:8px;background:white}
+.sequence {display:flex;flex-wrap:wrap;gap:.4rem;margin:1rem 0}.sequence button {padding:.5rem .7rem;background:var(--teal-soft);color:var(--teal);border:1px solid var(--line);border-radius:8px}
+.sequence button[data-bit="0"] {background:var(--coral-soft);color:#99432d}
+.table-wrap table {font-size:.84rem}.chart-note {margin-top:.65rem}.formula mjx-container {max-width:none}
+</style></head><body data-language="en"><a class="skip-link" href="#main">跳到正文 / Skip to content</a><header class="hero"><div class="hero-inner"><p class="eyebrow">CS 473 · OCT 8 · §6.3</p><h1><span class="zh">共享了多少信息？</span><span class="en" lang="en">How Much Information Is Shared?</span></h1><div class="bilingual"><p class="zh" lang="zh-CN">用熵、概率表与可拖动的散点，看懂互信息、条件信息和无损的参数摘要</p><p class="en" lang="en">Explore mutual information, conditional dependence, and parameter-preserving summaries through entropy, probability tables, and interactive scatterplots</p></div><div class="hero-tags"><span>Mutual information</span><span>Conditional MI</span><span>Correlation</span><span>Data processing</span><span>Sufficient statistics</span></div><nav class="language-switch" aria-label="Language and directory"><a href="../../zh/">← 中文目录</a><a href="../../">English directory</a><a href="../oct-06/">← 上次 / Previous</a><button type="button" data-language="both" aria-pressed="false">中英对照 / Bilingual</button><button type="button" data-language="zh" aria-pressed="false">中文</button><button type="button" data-language="en" aria-pressed="true">English</button></nav></div></header><div class="page-shell"><nav class="toc" aria-label="Page contents"><strong>READING ROUTE</strong><a href="#map">阅读路线 / Reading map</a><a href="#definition">6.3.1 定义 / Definition</a><a href="#interpretation">6.3.2 解释 / Interpretation</a><a href="#example">6.3.3 偶数与质数 / Example</a><a href="#conditional">6.3.4 Conditional MI</a><a href="#gaussian">6.3.5 Correlation & MI</a><a href="#processing">6.3.8 Data processing</a><a href="#sufficient">6.3.9 Sufficient statistics</a><a href="#check">自测 / Self-check</a><a href="#recap">回顾 / Recap</a></nav><main id="main"><section class="chapter" id="map"><p class="section-kicker">OCT 8 · READING MAP</p><h2><span class="zh">知道一个变量，能帮你多少？</span><span class="en" lang="en">How much does one variable tell you about another?</span></h2><div class="bilingual"><p class="zh" lang="zh-CN">上次我们问“一个分布有多不确定”和“模型偏离真实分布多少”。这次把问题换成：知道 Y 后，关于 X 的不确定性能减少多少？互信息把这件事量化，并进一步解释条件信息、加工信息的限度，以及怎样压缩数据却保留参数信息</p><p class="en" lang="en">Previously we measured a distribution’s uncertainty and a model’s mismatch. Now ask: how much does observing Y reduce uncertainty about X? Mutual information quantifies this, leading to conditional information, limits on data processing, and summaries that preserve parameter information.</p></div><div class="concept-grid"><div class="concept"><b>I(X;Y) · 互信息</b><span>从联合分布识别依赖<br>Dependence through the joint distribution</span></div><div class="concept"><b>I(X;Y|Z) · 条件互信息</b><span>已有 Z 后的额外信息<br>Extra information after observing Z</span></div><div class="concept"><b>D → s(D) · 充分统计量</b><span>压缩但不丢参数信息<br>Compression that preserves parameter information</span></div></div><div class="plain-language"><div class="bilingual"><p class="zh" lang="zh-CN"><strong>范围：</strong>6.3.1–6.3.5、6.3.8、6.3.9。按截图跳过 6.3.6、6.3.7、6.3.10。对应本地 Oct 8 阅读文件夹；下面新增的 XOR、非线性和噪声信道实验均标为教学例子</p><p class="en" lang="en"><strong>Scope:</strong> §§6.3.1–6.3.5, 6.3.8, and 6.3.9. Skip §§6.3.6, 6.3.7, and 6.3.10 as requested in the screenshot. The course folder assigns this reading to Oct 8. Added XOR, nonlinear, and noisy-channel examples are identified as teaching examples.</p></div></div><p class="source">Kevin P. Murphy · <cite>Probabilistic Machine Learning: An Introduction</cite> · MIT Press, 2022 · Online version April 18, 2025<br>印刷页 / printed pp. 217–220, 223–224 · PDF pp. 247–250, 253–254 · Generated Oct 7, 2026<br>独立编写的双语讲解与交互图 / Independently authored bilingual explanations and diagrams</p></section><section class="chapter" id="definition"><p class="section-kicker">6.3.1 · DEFINITION</p><h2><span class="zh">把真实联合分布与“假装独立”比较</span><span class="en" lang="en">Compare the joint distribution with an independence model</span></h2><div class="bilingual"><p class="zh" lang="zh-CN">只看各自的边缘分布 p(x)、p(y)，你还不知道两个变量如何一起出现。如果它们独立，联合概率应是 p(x)p(y)。互信息用 KL 比较真实联合分布 p(x,y) 与这个独立模型：差异越明显，两个变量共享的信息越多</p><p class="en" lang="en">The marginals p(x) and p(y) do not specify how variables occur together. Independence would give p(x)p(y). Mutual information compares the actual joint p(x,y) to this independent model using KL: departures quantify shared information.</p></div><div class="formula">\[I(X;Y)=D_{\mathrm{KL}}\!\left(p(x,y)\parallel p(x)p(y)\right)=\sum_{x,y}p(x,y)\log\frac{p(x,y)}{p(x)p(y)}\]</div><div class="bilingual"><p class="zh" lang="zh-CN">一个比值大于 1 的组合，比独立模型预测的更常出现；小于 1 的组合更少出现。单项可以为负，完整平均却非负。约定 p(x,y)=0 的项贡献 0；只要联合概率为正，对应两个边缘概率也必然为正</p><p class="en" lang="en">A ratio above 1 means a pair appears more often than independence predicts; below 1 means less often. Individual contributions may be negative, but the complete average is nonnegative. Zero joint-probability terms contribute zero; positive joint probability implies positive corresponding marginals.</p></div><div class="formula">\[I(X;Y)\ge0,\qquad I(X;Y)=0\iff p(x,y)=p(x)p(y),\qquad I(X;Y)=I(Y;X)\]</div><div class="bilingual"><p class="zh" lang="zh-CN">KL 一般不对称，但这里交换 X、Y 只是交换同一个联合分布的坐标，所以互信息是对称的。连续变量把求和换成积分，非负性仍成立。log₂ 的单位是 bits，ln 的单位是 nats，bits=nats/ln 2</p><p class="en" lang="en">KL is generally asymmetric, but swapping X and Y only relabels the coordinates of the same joint, so mutual information is symmetric. For continuous variables, replace the sum with an integral; nonnegativity still holds. Base 2 gives bits and natural logs give nats, with bits=nats/ln 2.</p></div><div class="plain-language"><div class="bilingual"><p class="zh" lang="zh-CN">互信息反映统计依赖，不等于因果关系。它也不告诉你关联的正负方向：完美正相关与完美负相关，都可以提供完整预测信息</p><p class="en" lang="en">Mutual information measures statistical dependence, not causation. It does not encode the sign of an association: perfect positive and perfect negative relationships can both provide complete predictive information.</p></div></div></section><section class="chapter" id="interpretation"><p class="section-kicker">6.3.2 · INTERPRETATION</p><h2><span class="zh">互信息就是平均减少的不确定性</span><span class="en" lang="en">Mutual information is average uncertainty reduction</span></h2><div class="formula">\[I(X;Y)=H(X)-H(X\mid Y)=H(Y)-H(Y\mid X)\]</div><div class="bilingual"><p class="zh" lang="zh-CN">H(X) 是看到 Y 之前的不确定性，H(X|Y) 是看过 Y 之后平均剩下的不确定性。两者之差就是学到了多少。由于互信息非负，也再次得到 H(X|Y)≤H(X)；这仍是平均结论，不保证每个特定观察都让你更确定</p><p class="en" lang="en">H(X) is uncertainty before observing Y; H(X|Y) is the average uncertainty remaining afterward. Their difference measures what you learned. Nonnegative MI implies H(X|Y)≤H(X), an average statement rather than a guarantee for every individual observation.</p></div><div class="bilingual"><p class="zh" lang="zh-CN">推导只需要熵的链式法则 H(X,Y)=H(X)+H(Y|X)。在 KL 定义中拆开 log[p(x,y)/(p(x)p(y))]，三个部分分别变成 −H(X,Y)、H(X)、H(Y)</p><p class="en" lang="en">Use the entropy chain rule H(X,Y)=H(X)+H(Y|X). Splitting the logarithm in the KL definition gives three terms: −H(X,Y), H(X), and H(Y).</p></div><div class="formula">\[I(X;Y)=H(X)+H(Y)-H(X,Y)\]</div><div class="formula">\[I(X;Y)=H(X,Y)-H(X\mid Y)-H(Y\mid X)\]</div><div class="bilingual"><p class="zh" lang="zh-CN">信息图把 H(X)、H(Y) 画成两个重叠区域：交集是 I(X;Y)，仅 X 的部分是 H(X|Y)，仅 Y 的部分是 H(Y|X)，并集是 H(X,Y)。这是离散变量的信息量示意，不是普通集合中“样本点”的交集；下面圆的面积不按数值比例缩放</p><p class="en" lang="en">An information diagram depicts H(X) and H(Y) as overlapping regions: the overlap is I(X;Y), the exclusive parts are H(X|Y) and H(Y|X), and the union is H(X,Y). These are information quantities for discrete variables, not intersecting sets of sample points. The circles below are schematic rather than scaled by area.</p></div></section><section class="chapter" id="example"><p class="section-kicker">6.3.3 · BOOK EXAMPLE</p><h2><span class="zh">偶数与质数：共享约 0.19 bits</span><span class="en" lang="en">Evenness and primality share about 0.19 bits</span></h2><div class="bilingual"><p class="zh" lang="zh-CN">教材从 1 到 8 均匀取整数，X=1 表示偶数，Y=1 表示质数。质数是 2、3、5、7，其中只有 2 是偶数。两个边缘分布都各半，但联合分布不是四格各 1/4，所以它们有依赖</p><p class="en" lang="en">The book draws an integer uniformly from 1 through 8. X=1 means even and Y=1 means prime. The primes are 2, 3, 5, and 7, and only 2 is even. Both marginals are balanced, but the joint is not uniform over four cells, so the variables are dependent.</p></div><div class="table-wrap"><table><tr><th>n</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th></tr><tr><th>X · even</th><td>0</td><td>1</td><td>0</td><td>1</td><td>0</td><td>1</td><td>0</td><td>1</td></tr><tr><th>Y · prime</th><td>0</td><td>1</td><td>1</td><td>0</td><td>1</td><td>0</td><td>1</td><td>0</td></tr></table></div><div class="formula">\[p(X,Y)=\begin{pmatrix}1/8&amp;3/8\\3/8&amp;1/8\end{pmatrix},\qquad p(Y\mid X)=\begin{pmatrix}1/4&amp;3/4\\3/4&amp;1/4\end{pmatrix}\]</div><div class="bilingual"><p class="zh" lang="zh-CN">两张表的行是 X=0、1，列是 Y=0、1。条件表将每行除以 p(X)=1/2。H(Y|X)=h₂(1/4)≈0.8113，I(X;Y)=1−0.8113≈0.1887 bits。知道奇偶性不能确定质数身份，但确实减少了一些不确定性</p><p class="en" lang="en">Rows are X=0,1 and columns Y=0,1. Divide each joint row by p(X)=1/2 to obtain the conditional table. H(Y|X)=h₂(1/4)≈0.8113, and I(X;Y)=1−0.8113≈0.1887 bits. Evenness does not determine primality, but does reduce uncertainty.</p></div><div class="lab" id="shared-lab"><div class="lab-header"><h3><span class="zh">让边缘不变，只改变它们如何一起出现</span><span class="en" lang="en">Keep the marginals fixed and change the joint</span></h3><span class="lab-number">1</span></div><div class="bilingual"><p class="zh" lang="zh-CN">r=P(X=Y)。教材例子 r=0.25；r=0.5 时独立；r=0 或 1 时，一个变量完全决定另一个，互信息都是 1 bit</p><p class="en" lang="en">Set r=P(X=Y). The book has r=0.25; r=0.5 gives independence. At r=0 or 1, either variable determines the other and MI is 1 bit.</p></div><div class="controls"><div class="control"><label for="same-r">相同概率 / P(X=Y) <output id="same-r-value">0.25</output></label><input id="same-r" type="range" min="0" max="1" step="0.01" value="0.25"></div></div><div class="toggle-row"><button id="book-preset" type="button">教材例子 / Book example</button><button id="independent-preset" type="button">独立 / Independent</button></div><div class="table-wrap"><table><tr><th>p(X,Y)</th><th>Y=0</th><th>Y=1</th></tr><tr><th>X=0</th><td id="p00"></td><td id="p01"></td></tr><tr><th>X=1</th><td id="p10"></td><td id="p11"></td></tr></table></div><div class="chart-frame"><svg id="shared-chart" viewBox="0 0 720 340" role="img" aria-label="让边缘不变，只改变它们如何一起出现 / Keep the marginals fixed and change the joint"></svg></div><div class="stats" aria-live="polite"><div class="stat"><span>I(X;Y) · bits</span><b id="shared-mi">—</b></div><div class="stat"><span>H(Y|X) · bits</span><b id="shared-cond">—</b></div><div class="stat"><span>H(X,Y) · bits</span><b id="shared-joint">—</b></div></div></div><div class="formula">\[H(X,Y)=H(X\mid Y)+I(X;Y)+H(Y\mid X)\approx0.8113+0.1887+0.8113=1.8113\ \mathrm{bits}\]</div></section><section class="chapter" id="conditional"><p class="section-kicker">6.3.4 · CONDITIONAL MUTUAL INFORMATION</p><h2><span class="zh">已经知道 Z，X 还能告诉你多少？</span><span class="en" lang="en">After knowing Z, what extra information does X provide?</span></h2><div class="bilingual"><p class="zh" lang="zh-CN">条件互信息不是把 Z “减掉”那么简单。它先在每个 Z=z 的条件分布内计算 X、Y 的互信息，然后按 p(z) 加权。它衡量的是在已有 Z 的情况下，X 对 Y 提供的额外信息</p><p class="en" lang="en">Conditional MI is not simply subtracting Z. Compute MI within each conditional distribution at Z=z, then average with p(z). It measures the extra information X provides about Y after Z is already known.</p></div><div class="formula">\[I(X;Y\mid Z)=\sum_zp(z)D_{\mathrm{KL}}\!\left(p(x,y\mid z)\parallel p(x\mid z)p(y\mid z)\right)\]</div><div class="formula">\[=\mathbb E_{p(x,y,z)}\!\left[\log\frac{p(x,y\mid z)}{p(x\mid z)p(y\mid z)}\right]\ge0\]</div><div class="formula">\[I(X;Y\mid Z)=H(X\mid Z)+H(Y\mid Z)-H(X,Y\mid Z)\]</div><div class="formula">\[=H(X\mid Z)-H(X\mid Y,Z)=H(Y\mid Z)-H(Y\mid X,Z)\]</div><details><summary>联合熵形式 / Joint-entropy form</summary><div class="formula">\[I(X;Y\mid Z)=H(X,Z)+H(Y,Z)-H(Z)-H(X,Y,Z)\]</div></details><h3><span class="zh">用链式法则累计额外信息</span><span class="en" lang="en">Accumulate additional information with the chain rule</span></h3><div class="formula">\[I(Y;X,Z)=I(Y;Z)+I(Y;X\mid Z)\]</div><div class="formula">\[I(Z_1,\ldots,Z_N;X)=\sum_{n=1}^NI(Z_n;X\mid Z_1,\ldots,Z_{n-1})\]</div><div class="bilingual"><p class="zh" lang="zh-CN">先算 Z₁ 告诉你多少，再算已经知道 Z₁ 后 Z₂ 还能补充多少，依次累积。顺序可以改变每一项，但完整总量不变。I(X;Y|Z)=0 当且仅当 X、Y 在给定 Z 后条件独立（对 p(z)>0 的条件）</p><p class="en" lang="en">First count information from Z₁, then the extra contribution from Z₂ after Z₁, and continue. Reordering can change individual terms without changing the full total. I(X;Y|Z)=0 exactly when X and Y are conditionally independent given Z, for conditions with positive probability.</p></div><div class="lab" id="conditional-lab"><div class="lab-header"><h3><span class="zh">条件化可以降低，也可以提高互信息</span><span class="en" lang="en">Conditioning can decrease or increase MI</span></h3><span class="lab-number">2</span></div><div class="bilingual"><p class="zh" lang="zh-CN">教学例子：共同来源时，X、Y 都是 Z 经过独立翻转噪声后的版本；XOR 时，X、Z 独立且各半，Y=X⊕Z，再以概率 ε 翻转。切换例子，看整体互信息与条件互信息为何不同</p><p class="en" lang="en">Teaching examples: in a common-source model, X and Y are independently corrupted copies of Z. In XOR, balanced independent X and Z produce Y=X⊕Z, followed by a flip with probability ε. Compare ordinary and conditional MI.</p></div><div class="controls"><div class="control"><label for="conditional-mode">关系 / Relationship</label><select id="conditional-mode"><option value="common">共同来源 / Common source</option><option value="xor">XOR · 隐藏的依赖 / Hidden dependence</option></select></div><div class="control"><label for="cond-noise">翻转概率 ε / Flip probability <output id="cond-noise-value">0</output></label><input id="cond-noise" type="range" min="0" max="0.5" step="0.01" value="0"></div></div><div class="chart-frame"><svg id="conditional-chart" viewBox="0 0 720 340" role="img" aria-label="条件化可以降低，也可以提高互信息 / Conditioning can decrease or increase MI"></svg></div><div class="stats" aria-live="polite"><div class="stat"><span>I(X;Y) · bits</span><b id="cond-mi">—</b></div><div class="stat"><span>I(X;Y|Z) · bits</span><b id="cond-cmi">—</b></div><div class="stat"><span>关系 / Relationship</span><b id="cond-description">—</b></div></div></div><div class="plain-language warning"><div class="bilingual"><p class="zh" lang="zh-CN">没有一般规律 I(X;Y|Z)≤I(X;Y)。共同来源可以解释掉依赖；XOR 例子却有 I(X;Y)=0、I(X;Y|Z)=1。条件互信息不是简单“三个圆的公共交集”</p><p class="en" lang="en">There is no general rule I(X;Y|Z)≤I(X;Y). A common source can explain dependence away; noiseless XOR has I(X;Y)=0 but I(X;Y|Z)=1. Conditional MI is not simply the common intersection of three circles.</p></div></div></section><section class="chapter" id="gaussian"><p class="section-kicker">6.3.5 · GENERALIZED CORRELATION</p><h2><span class="zh">高斯情形：相关越强，互信息越大</span><span class="en" lang="en">For joint Gaussians, stronger correlation means more information</span></h2><div class="bilingual"><p class="zh" lang="zh-CN">如果 X、Y 联合高斯，边缘方差都为 σ²，相关系数为 ρ，协方差矩阵的行列式是 σ⁴(1−ρ²)。把高斯熵代入 h(X)+h(Y)−h(X,Y)，共同的尺度项抵消，最终只剩 ρ</p><p class="en" lang="en">For jointly Gaussian X,Y with marginal variances σ² and correlation ρ, the covariance determinant is σ⁴(1−ρ²). Substituting Gaussian entropies into h(X)+h(Y)−h(X,Y) cancels the shared scale terms, leaving only ρ.</p></div><div class="formula">\[\Sigma=\sigma^2\begin{pmatrix}1&amp;\rho\\\rho&amp;1\end{pmatrix},\quad\det\Sigma=\sigma^4(1-\rho^2)\]</div><div class="formula">\[I(X;Y)=\frac12\ln\frac{\sigma^4}{\det\Sigma}=-\frac12\ln(1-\rho^2)\quad\mathrm{nats},\quad |\rho|&lt;1\]</div><div class="bilingual"><p class="zh" lang="zh-CN">ρ=0 时互信息为 0，而且联合高斯下确实独立。ρ 的正负号不影响互信息；ρ→±1 时，关系趋近确定的连续映射，互信息趋向 ∞。这是无限精度连续变量的极限，不是“一个二元变量能告诉你无限 bits”</p><p class="en" lang="en">At ρ=0, MI is zero and joint Gaussianity implies independence. The sign of ρ does not change MI. As ρ approaches ±1, the relationship becomes deterministic and continuous MI diverges. This is an infinite-precision continuous limit, not infinite information from a binary variable.</p></div><div class="lab" id="gaussian-lab"><div class="lab-header"><h3><span class="zh">拖动 ρ，观察散点与解析互信息</span><span class="en" lang="en">Move ρ and inspect scatter and analytic MI</span></h3><span class="lab-number">3</span></div><div class="bilingual"><p class="zh" lang="zh-CN">固定教学样本展示形状，数值使用总体高斯解析公式，不从散点估计。避免把有限点云的经验互信息与理论互信息混在一起</p><p class="en" lang="en">Fixed illustrative samples show the shape. The displayed MI uses the population Gaussian formula, not an estimator fitted to these points.</p></div><div class="controls"><div class="control"><label for="rho">相关系数 ρ / Correlation <output id="rho-value">0.7</output></label><input id="rho" type="range" min="-0.99" max="0.99" step="0.01" value="0.7"></div></div><div class="chart-frame"><svg id="gaussian-chart" viewBox="0 0 720 340" role="img" aria-label="拖动 ρ，观察散点与解析互信息 / Move ρ and inspect scatter and analytic MI"></svg></div><div class="stats" aria-live="polite"><div class="stat"><span>I(X;Y) · nats</span><b id="gauss-mi-nats">—</b></div><div class="stat"><span>I(X;Y) · bits</span><b id="gauss-mi-bits">—</b></div><div class="stat"><span>ρ · population</span><b id="gauss-rho">—</b></div></div></div><h3><span class="zh">非高斯情形：零相关并不等于独立</span><span class="en" lang="en">Outside joint Gaussianity, zero correlation need not imply independence</span></h3><div class="bilingual"><p class="zh" lang="zh-CN">教学例子：对称分布的 X，令 Y=X²。直线相关可以为 0，但知道 X 能精确预测 Y。互信息能捕捉这种非线性依赖。对连续变量，教材介绍先分箱估计联合频率，再计算离散互信息；结果对箱数和边界位置很敏感</p><p class="en" lang="en">Teaching example: for symmetric X, let Y=X². Linear correlation can be zero even though X determines Y exactly. MI detects nonlinear dependence. For continuous data, the book describes discretizing into bins, estimating joint frequencies, and calculating discrete MI; bin counts and boundaries matter substantially.</p></div><div class="lab" id="nonlinear-lab"><div class="lab-header"><h3><span class="zh">同一批点，改变关系和分箱数</span><span class="en" lang="en">The same points, different relationships and bin counts</span></h3><span class="lab-number">4</span></div><div class="bilingual"><p class="zh" lang="zh-CN">对比 Y=X²+噪声与独立样本。滑块中的 bins 是每个轴的分箱数；显示的是有限样本的经验估计，独立样本也可能得到正值</p><p class="en" lang="en">Compare Y=X²+noise with independent samples. Bins specify the count on each axis. The displayed value is a finite-sample plug-in estimate; independent samples can also yield a positive estimate.</p></div><div class="controls"><div class="control"><label for="nonlinear-mode">关系 / Relationship</label><select id="nonlinear-mode"><option value="square">Y=X²+noise</option><option value="independent">独立样本 / Independent</option></select></div><div class="control"><label for="nonlinear-noise">噪声幅度 / Noise amplitude <output id="nonlinear-noise-value">0.15</output></label><input id="nonlinear-noise" type="range" min="0" max="1" step="0.05" value="0.15"></div><div class="control"><label for="bins">每轴箱数 / Bins per axis <output id="bins-value">8</output></label><input id="bins" type="range" min="2" max="30" step="1" value="8"></div></div><div class="chart-frame"><svg id="nonlinear-chart" viewBox="0 0 720 340" role="img" aria-label="同一批点，改变关系和分箱数 / The same points, different relationships and bin counts"></svg></div><div class="stats" aria-live="polite"><div class="stat"><span>样本 Pearson r</span><b id="nonlinear-r">—</b></div><div class="stat"><span>分箱经验 MI / Binned estimate · bits</span><b id="nonlinear-mi">—</b></div><div class="stat"><span>样本数 / Sample count</span><b id="nonlinear-n">—</b></div></div></div><div class="bilingual"><p class="zh" lang="zh-CN">分箱太多时，稀疏格子可能让有限样本估计偏高；分箱太少时，粗糙划分会掩盖结构。教材还介绍 KSG：利用 K-nearest-neighbor 距离自适应估计局部密度，减少固定网格选择的影响。书中举 sklearn 的 mutual_info_regression 为实现例子；估计结果仍依赖样本与估计器选择</p><p class="en" lang="en">Too many bins create sparse cells and can inflate finite-sample estimates; too few can hide structure. The book also introduces KSG, using K-nearest-neighbor distances for adaptive local-density estimation rather than a fixed grid. It names sklearn’s mutual_info_regression as an implementation example; estimates still depend on data and estimator choices.</p></div></section><section class="chapter" id="processing"><p class="section-kicker">6.3.8 · DATA PROCESSING INEQUALITY</p><h2><span class="zh">加工信息，不能凭空增加源的信息</span><span class="en" lang="en">Processing cannot create new information about the source</span></h2><div class="bilingual"><p class="zh" lang="zh-CN">假设 X→Y→Z 是 Markov chain，也就是 p(x,y,z)=p(x)p(y|x)p(z|y)，给定 Y 后 X 与 Z 条件独立。Z 只能从 Y 生成，不能偷看 X 或得到额外侧信息。此时，无论加工方式是什么，Z 对 X 的互信息都不超过 Y</p><p class="en" lang="en">Assume X→Y→Z is a Markov chain: p(x,y,z)=p(x)p(y|x)p(z|y), so X and Z are conditionally independent given Y. Z is generated from Y without access to X or extra side information. Processing cannot increase MI with X.</p></div><div class="formula">\[I(X;Z)\le I(X;Y),\qquad I(X;Z)\le I(Y;Z)\]</div><h3><span class="zh">证明：把同一信息量展开两次</span><span class="en" lang="en">Proof: expand the same information in two orders</span></h3><div class="formula">\[I(X;Y,Z)=I(X;Z)+I(X;Y\mid Z)=I(X;Y)+I(X;Z\mid Y)\]</div><div class="formula">\[I(X;Z\mid Y)=0\quad\Longrightarrow\quad I(X;Y)-I(X;Z)=I(X;Y\mid Z)\ge0\]</div><div class="bilingual"><p class="zh" lang="zh-CN">后处理可以把信息整理成更容易使用的表示，让某个有限能力的算法表现更好；但这不等于创造更多关于原始 X 的信息。若另外加入相关的侧信息，就需要重新判断 Markov 条件</p><p class="en" lang="en">Post-processing can reorganize information into a more useful representation and improve a limited algorithm’s performance. That does not create additional information about X. Adding relevant side information requires rechecking the Markov condition.</p></div><div class="lab" id="channel-lab"><div class="lab-header"><h3><span class="zh">两个连续的二元噪声信道</span><span class="en" lang="en">Two consecutive binary noisy channels</span></h3><span class="lab-number">5</span></div><div class="bilingual"><p class="zh" lang="zh-CN">教学例子：X 是公平比特，Y 以概率 ε₁ 翻转 X，Z 再以概率 ε₂ 翻转 Y，两次噪声独立。把第二次噪声设为 0，信息保留；设为 0.5，输出不再含 X 的信息</p><p class="en" lang="en">Teaching example: X is a fair bit. Y flips it with probability ε₁, then Z independently flips Y with probability ε₂. No second-stage noise preserves information; a 0.5 flip rate removes information about X.</p></div><div class="controls"><div class="control"><label for="noise-one">第一段 ε₁ / First flip rate <output id="noise-one-value">0.1</output></label><input id="noise-one" type="range" min="0" max="0.5" step="0.01" value="0.1"></div><div class="control"><label for="noise-two">第二段 ε₂ / Second flip rate <output id="noise-two-value">0.2</output></label><input id="noise-two" type="range" min="0" max="0.5" step="0.01" value="0.2"></div></div><div class="chart-frame"><svg id="channel-chart" viewBox="0 0 720 340" role="img" aria-label="两个连续的二元噪声信道 / Two consecutive binary noisy channels"></svg></div><div class="stats" aria-live="polite"><div class="stat"><span>I(X;Y) · bits</span><b id="channel-xy">—</b></div><div class="stat"><span>I(X;Z) · bits</span><b id="channel-xz">—</b></div><div class="stat"><span>X→Z 总翻转概率 / Overall flip rate</span><b id="channel-effective">—</b></div></div></div><div class="formula">\[\varepsilon_{\mathrm{eff}}=\varepsilon_1(1-\varepsilon_2)+(1-\varepsilon_1)\varepsilon_2,\quad I(X;Y)=1-h_2(\varepsilon_1),\quad I(X;Z)=1-h_2(\varepsilon_{\mathrm{eff}})\]</div><div class="plain-language"><div class="bilingual"><p class="zh" lang="zh-CN">DPI 不要求严格降低：可逆变换可以保留互信息，丢弃与 X 无关的冗余信息也可能保留。等号的条件是 I(X;Y|Z)=0；下一节的充分统计量正是这种“压缩但保留相关信息”的例子</p><p class="en" lang="en">DPI need not be strict: invertible transformations preserve MI, and removing information irrelevant to X may also preserve it. Equality holds when I(X;Y|Z)=0. Sufficient statistics provide exactly this kind of compression with relevant information preserved.</p></div></div></section><section class="chapter" id="sufficient"><p class="section-kicker">6.3.9 · SUFFICIENT STATISTICS</p><h2><span class="zh">保留对参数有用的信息，丢掉其他细节</span><span class="en" lang="en">Keep parameter information while discarding irrelevant detail</span></h2><div class="bilingual"><p class="zh" lang="zh-CN">现在把源换成未知参数 θ，数据是 D，摘要是 s(D)。总有 θ→D→s(D)，所以摘要不能凭空增加关于 θ 的信息。如果它保留了全部相关信息，就称为 sufficient statistic</p><p class="en" lang="en">Let θ be an unknown parameter, D the data, and s(D) a summary. The chain θ→D→s(D) means summarizing cannot create information about θ. A summary that preserves all relevant information is a sufficient statistic.</p></div><div class="formula">\[I(\theta;s(D))\le I(\theta;D),\qquad\text{sufficiency: } I(\theta;s(D))=I(\theta;D)\]</div><div class="bilingual"><p class="zh" lang="zh-CN">在相应概率模型下，可以写成 θ ⟂ D | s(D)：给了摘要以后，原始数据不再补充参数信息。等价地，对于固定的先验和模型，p(θ|D)=p(θ|s(D))；频率学派的定义是数据在给定统计量后的条件分布不依赖 θ。这里 θ→s(D)→D 是概率生成关系，不是说能从摘要唯一恢复原始数据</p><p class="en" lang="en">Under the relevant probability model, sufficiency means θ ⟂ D | s(D): the original data add no parameter information once the summary is known. For a given prior and model, p(θ|D)=p(θ|s(D)); the frequentist definition says the conditional distribution of data given the statistic does not depend on θ. The chain θ→s(D)→D is probabilistic, not unique recovery of the original dataset.</p></div><h3><span class="zh">Bernoulli：顺序可丢，成功次数要留</span><span class="en" lang="en">Bernoulli trials: discard order, keep the success count</span></h3><div class="formula">\[k=\sum_{n=1}^Nx_n,\qquad p(D\mid\theta)=\theta^k(1-\theta)^{N-k},\qquad s(D)=(N,k)\]</div><div class="bilingual"><p class="zh" lang="zh-CN">对独立同分布的 Bernoulli(θ) 试验，N 次中成功 k 次足以推断 θ。N 固定已知时只需 k。HHTT 与 HTHT 有相同 k，给 θ 的似然完全一样；若仅保留“有没有成功过”，就无法区分 1 次和 9 次成功，会丢信息</p><p class="en" lang="en">For iid Bernoulli(θ) trials, k successes out of N are sufficient for θ. If N is fixed and known, k alone suffices. HHTT and HTHT have identical likelihoods for θ. Keeping only whether any success occurred loses the distinction between one and nine successes.</p></div><div class="lab" id="sufficient-lab"><div class="lab-header"><h3><span class="zh">改变顺序，看看似然是否变化</span><span class="en" lang="en">Change the order and watch the likelihood</span></h3><span class="lab-number">6</span></div><div class="bilingual"><p class="zh" lang="zh-CN">点击 H/T 改变成功次数；“重排”只改变顺序。蓝色曲线是这一个有序序列的似然 θᵏ(1−θ)ᴺ⁻ᵏ，红色是计数事件的二项概率。两者只差与 θ 无关的组合数，因此支持相同的参数比较</p><p class="en" lang="en">Click H/T to change the count. Reorder only changes the sequence order. Blue is the ordered sequence likelihood θᵏ(1−θ)ᴺ⁻ᵏ; coral is the binomial probability of the count. They differ only by a θ-independent combinatorial factor, giving the same parameter comparisons.</p></div><div class="controls"><div class="control"><label for="trial-theta">候选参数 θ / Candidate parameter <output id="trial-theta-value">0.5</output></label><input id="trial-theta" type="range" min="0" max="1" step="0.01" value="0.5"></div></div><div class="sequence" id="trial-sequence" aria-label="Bernoulli sequence"><button type="button" data-bit="1" aria-label="Trial 1: head">H</button><button type="button" data-bit="0" aria-label="Trial 2: tail">T</button><button type="button" data-bit="1" aria-label="Trial 3: head">H</button><button type="button" data-bit="1" aria-label="Trial 4: head">H</button><button type="button" data-bit="0" aria-label="Trial 5: tail">T</button><button type="button" data-bit="0" aria-label="Trial 6: tail">T</button><button type="button" data-bit="1" aria-label="Trial 7: head">H</button><button type="button" data-bit="0" aria-label="Trial 8: tail">T</button></div><div class="toggle-row"><button type="button" id="reorder-trials">重排 / Reorder</button></div><div class="legend"><span><i class="legend-line"></i>Ordered sequence</span><span><i class="legend-line coral"></i>Count event</span></div><div class="chart-frame"><svg id="sufficient-chart" viewBox="0 0 720 340" role="img" aria-label="改变顺序，看看似然是否变化 / Change the order and watch the likelihood"></svg></div><div class="stats" aria-live="polite"><div class="stat"><span>成功次数 k / Successes</span><b id="suff-k">—</b></div><div class="stat"><span>p(ordered sequence|θ)</span><b id="suff-sequence">—</b></div><div class="stat"><span>p(count=k|θ)</span><b id="suff-count">—</b></div></div></div><h3><span class="zh">充分不代表最精简</span><span class="en" lang="en">Sufficient does not necessarily mean minimal</span></h3><div class="bilingual"><p class="zh" lang="zh-CN">s(D)=D 当然充分，但没有压缩。Minimal sufficient statistic 要求对任何充分统计量 s′(D)，都存在函数 f，使 s(D)=f(s′(D))：任何充分摘要都必须能提供这个最小摘要。可概括为 θ→s(D)→s′(D)→D，其中更丰富的摘要包含冗余细节</p><p class="en" lang="en">s(D)=D is sufficient but does not compress. A minimal sufficient statistic satisfies s(D)=f(s′(D)) for every sufficient statistic s′: any sufficient summary must determine the minimal one. The relation can be summarized by θ→s(D)→s′(D)→D, with richer summaries retaining redundant details.</p></div><div class="bilingual"><p class="zh" lang="zh-CN">教材另一个例子：独立高斯样本、方差已知、只推断均值时，样本均值与样本数足够；N 固定时只需均值。充分性总是相对于模型和目标参数而言，换成未知方差或有时间依赖的试验，就要重新判断</p><p class="en" lang="en">The book’s other example: for iid Gaussian samples with known variance and an unknown mean, the empirical mean and sample count suffice; fixed N leaves just the mean. Sufficiency is always relative to the model and parameter of interest. Unknown variance or temporal dependence requires a new assessment.</p></div></section><section class="chapter" id="check"><p class="section-kicker">SELF-CHECK</p><h2><span class="zh">七个问题，自查关键区别</span><span class="en" lang="en">Seven checks for the essential distinctions</span></h2><div class="bilingual"><p class="zh" lang="zh-CN">选择答案后会出现针对该题的解释</p><p class="en" lang="en">Select an answer to see an explanation specific to that question.</p></div><div class="quiz" data-answer="0" data-explanation="真实联合等于边缘乘积 / The joint equals the product of marginals"><div class="bilingual"><p class="zh" lang="zh-CN">1. I(X;Y)=0 说明什么？</p><p class="en" lang="en">1. What does I(X;Y)=0 mean?</p></div><div class="quiz-options"><button type="button" data-choice="0">独立 / Independent</button><button type="button" data-choice="1">只有零线性相关 / Only zero linear correlation</button><p class="feedback" aria-live="polite"></p></div><div class="quiz" data-answer="1" data-explanation="互信息总是非负；不表达正负方向 / MI is nonnegative and has no association sign"><div class="bilingual"><p class="zh" lang="zh-CN">2. 互信息会因负相关而变成负数吗？</p><p class="en" lang="en">2. Can negative correlation make MI negative?</p></div><div class="quiz-options"><button type="button" data-choice="0">会 / Yes</button><button type="button" data-choice="1">不会 / No</button><p class="feedback" aria-live="polite"></p></div><div class="quiz" data-answer="0" data-explanation="1−0.8113=0.1887；另两个分别是条件熵与联合熵 / The other values are conditional and joint entropy"><div class="bilingual"><p class="zh" lang="zh-CN">3. 偶数与质数例子的 MI 大约是多少？</p><p class="en" lang="en">3. What is MI in the even/prime example?</p></div><div class="quiz-options"><button type="button" data-choice="0">0.1887 bits</button><button type="button" data-choice="1">0.8113 bits</button><button type="button" data-choice="2">1.8113 bits</button><p class="feedback" aria-live="polite"></p></div><div class="quiz" data-answer="1" data-explanation="XOR 中 I(X;Y)=0，但 I(X;Y|Z)=1 / XOR gives zero ordinary MI but one bit conditional MI"><div class="bilingual"><p class="zh" lang="zh-CN">4. 条件化后 MI 一定更小吗？</p><p class="en" lang="en">4. Must conditioning reduce MI?</p></div><div class="quiz-options"><button type="button" data-choice="0">一定 / Always</button><button type="button" data-choice="1">不一定 / Not necessarily</button><p class="feedback" aria-live="polite"></p></div><div class="quiz" data-answer="1" data-explanation="非线性依赖可以零相关；联合高斯是关键 / Nonlinear dependence can have zero correlation"><div class="bilingual"><p class="zh" lang="zh-CN">5. ρ=0 意味着独立，需要哪个条件？</p><p class="en" lang="en">5. When does ρ=0 imply independence?</p></div><div class="quiz-options"><button type="button" data-choice="0">任意分布 / Any distribution</button><button type="button" data-choice="1">联合高斯 / Joint Gaussian</button><p class="feedback" aria-live="polite"></p></div><div class="quiz" data-answer="0" data-explanation="DPI：只从 Y 加工得到 Z，不能增加关于 X 的信息 / Processing Y cannot create information about X"><div class="bilingual"><p class="zh" lang="zh-CN">6. X→Y→Z，哪条不等式成立？</p><p class="en" lang="en">6. Which inequality follows from X→Y→Z?</p></div><div class="quiz-options"><button type="button" data-choice="0">I(X;Z)≤I(X;Y)</button><button type="button" data-choice="1">I(X;Z)≥I(X;Y)</button><p class="feedback" aria-live="polite"></p></div><div class="quiz" data-answer="1" data-explanation="似然只依赖 k 与已知 N / The likelihood depends only on k and known N"><div class="bilingual"><p class="zh" lang="zh-CN">7. 固定 N 的 iid Bernoulli 试验，推断 θ 需要保留什么？</p><p class="en" lang="en">7. For fixed-N iid Bernoulli trials, what is sufficient for θ?</p></div><div class="quiz-options"><button type="button" data-choice="0">全部试验顺序 / Entire order</button><button type="button" data-choice="1">成功次数 k / Success count</button><p class="feedback" aria-live="polite"></p></div></section><section class="recap" id="recap"><h2><span class="zh">把本章连起来</span><span class="en" lang="en">Connect the chapter</span></h2><div class="bilingual"><p class="zh" lang="zh-CN">互信息：比“独立模型”多知道多少；条件互信息：已有 Z 后又增加多少；高斯：I=−½ln(1−ρ²)，但一般零相关不等于独立；数据处理：Markov 条件下加工不能增加源信息；充分统计量：摘要可以保留全部参数信息，最小充分统计量进一步去除冗余</p><p class="en" lang="en">MI measures dependence beyond an independence model; conditional MI measures extra information after Z. Joint Gaussians satisfy I=−½ln(1−ρ²), but zero correlation does not generally imply independence. Under the Markov condition, processing cannot create source information. Sufficient summaries preserve parameter information; minimal sufficient summaries remove redundancy.</p></div></section></main></div><footer>Based on Kevin P. Murphy, <cite>Probabilistic Machine Learning: An Introduction</cite>, §6.3 (excluding §§6.3.6, 6.3.7, 6.3.10)<br>独立编写的双语学习笔记与交互图 / Independently authored bilingual notes and diagrams · Prepared Oct 7 for Oct 8, 2026</footer><script>(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const NS = 'http://www.w3.org/2000/svg';
+  const teal = '#087f72', coral = '#dc6547', ink = '#173532';
+  const fmt = (x, n = 4) => Math.abs(x) < 1e-12 ? (0).toFixed(n) : x.toFixed(n);
+  const h2 = x => x <= 0 || x >= 1 ? 0 : -x*Math.log2(x)-(1-x)*Math.log2(1-x);
+  function el(svg, tag, attrs, text) {
+    const node = document.createElementNS(NS, tag);
+    Object.entries(attrs || {}).forEach(([k,v]) => node.setAttribute(k,v));
+    if (text !== undefined) node.textContent = text;
+    svg.appendChild(node); return node;
+  }
+  const label = (s,x,y,t,extra={}) => el(s,'text',{x,y,fill:ink,'font-size':14,'text-anchor':'middle',...extra},t);
+  const line = (s,x1,y1,x2,y2,color='#c8d6d1') => el(s,'line',{x1,y1,x2,y2,stroke:color,'stroke-width':1.5});
+  function reset(id, title) {
+    const s = $(id); s.replaceChildren(); el(s,'title',{},title); return s;
+  }
+  function bind(ids, fn) {
+    ids.forEach(id => $(id).addEventListener('input',fn)); fn();
+  }
+  function output(id) { const x=Number($(id).value); const out=$(id+'-value'); if(out) out.value=fmt(x,2); return x; }
+  function bars(s, rows, max=1) {
+    rows.forEach((r,i) => { const y=160+i*65; label(s,62,y+21,r[0],{'text-anchor':'start'}); el(s,'rect',{x:220,y,width:430,height:30,rx:5,fill:'#e8eeea'}); el(s,'rect',{x:220,y,width:430*r[1]/max,height:30,rx:5,fill:r[2]}); label(s,650,y+48,fmt(r[1],4)+' bits',{'text-anchor':'end'}); });
+  }
+  function shared() {
+    const r=output('same-r'), cond=h2(r), mi=1-cond;
+    $('shared-mi').textContent=fmt(mi)+' bits'; $('shared-cond').textContent=fmt(cond)+' bits'; $('shared-joint').textContent=fmt(1+cond)+' bits';
+    ['p00','p01','p10','p11'].forEach((id,i)=>$(id).textContent=fmt((i===0||i===3?r:1-r)/2,3));
+    const s=reset('shared-chart','Information diagram: conditional entropy and shared mutual information');
+    el(s,'ellipse',{cx:285,cy:162,rx:178,ry:117,fill:teal,'fill-opacity':.15,stroke:teal,'stroke-width':2});
+    el(s,'ellipse',{cx:435,cy:162,rx:178,ry:117,fill:coral,'fill-opacity':.15,stroke:coral,'stroke-width':2});
+    label(s,223,120,'H(X|Y)');label(s,223,148,fmt(cond)+' bits');label(s,360,160,'I(X;Y)');label(s,360,189,fmt(mi)+' bits');label(s,497,120,'H(Y|X)');label(s,497,148,fmt(cond)+' bits');
+    label(s,220,32,'H(X) = 1 bit');label(s,500,32,'H(Y) = 1 bit');label(s,360,317,'H(X,Y) = '+fmt(1+cond)+' bits · schematic areas');
+  }
+  bind(['same-r'],shared);
+  $('book-preset').addEventListener('click',()=>{$('same-r').value=.25;shared();});
+  $('independent-preset').addEventListener('click',()=>{$('same-r').value=.5;shared();});
+  function conditional() {
+    const e=output('cond-noise'), mode=$('conditional-mode').value;
+    const mi=mode==='common'?1-h2(2*e*(1-e)):0, cmi=mode==='common'?0:1-h2(e);
+    $('cond-mi').textContent=fmt(mi)+' bits';$('cond-cmi').textContent=fmt(cmi)+' bits';
+    $('cond-description').textContent=mode==='common'?'共同原因 / Common cause':'XOR + noise';
+    const s=reset('conditional-chart','Ordinary versus conditional mutual information');
+    label(s,360,48,mode==='common'?'Z → X, Z → Y · independent flip noise':'X ⊕ Z → Y · output flip noise',{'font-size':21});
+    label(s,360,85,mode==='common'?'X ⫫ Y | Z':'Knowing Z reveals the X–Y relationship');
+    label(s,360,118,'e = '+fmt(e,2));bars(s,[['I(X;Y)',mi,teal],['I(X;Y|Z)',cmi,coral]]);
+    label(s,360,318,'Conditioning can remove or reveal dependence');
+  }
+  bind(['conditional-mode','cond-noise'],conditional);
+  let seed=47308;
+  function rand() { seed=(1664525*seed+1013904223)>>>0;return (seed+.5)/4294967296; }
+  function normal() {return Math.sqrt(-2*Math.log(rand()))*Math.cos(2*Math.PI*rand());}
+  const rawX=Array.from({length:260},normal),rawV=Array.from({length:260},normal);
+  function standardized(a) {const m=a.reduce((t,x)=>t+x,0)/a.length;const sd=Math.sqrt(a.reduce((t,x)=>t+(x-m)**2,0)/a.length);return a.map(x=>(x-m)/sd);}
+  const gx=standardized(rawX);let gv=standardized(rawV);
+  const cross=gx.reduce((t,x,i)=>t+x*gv[i],0)/gx.length;gv=standardized(gv.map((v,i)=>v-cross*gx[i]));
+  function scatter(s, points, bounds, grid=0) {
+    const [xmin,xmax,ymin,ymax]=bounds;
+    const px=x=>70+580*(x-xmin)/(xmax-xmin), py=y=>278-226*(y-ymin)/(ymax-ymin);
+    el(s,'rect',{x:70,y:52,width:580,height:226,rx:2,fill:'#fafbf8',stroke:'#c8d6d1'});
+    if(grid)for(let i=1;i<grid;i++){line(s,70+580*i/grid,52,70+580*i/grid,278,'#e2e9e4');line(s,70,52+226*i/grid,650,52+226*i/grid,'#e2e9e4');}
+    if(xmin<=0&&xmax>=0)line(s,px(0),52,px(0),278);
+    if(ymin<=0&&ymax>=0)line(s,70,py(0),650,py(0));
+    points.forEach(([x,y])=>{if(x>=xmin&&x<=xmax&&y>=ymin&&y<=ymax)el(s,'circle',{cx:px(x),cy:py(y),r:2.5,fill:teal,'fill-opacity':.58});});
+    label(s,360,307,'X');label(s,38,165,'Y');
+    label(s,70,295,fmt(xmin,1),{'font-size':11});label(s,650,295,fmt(xmax,1),{'font-size':11});
+    label(s,57,57,fmt(ymax,1),{'text-anchor':'end','font-size':11});label(s,57,280,fmt(ymin,1),{'text-anchor':'end','font-size':11});
+  }
+  function gaussian() {
+    const r=output('rho'),mi=-.5*Math.log1p(-r*r);
+    $('gauss-mi-nats').textContent=fmt(mi)+' nats';$('gauss-mi-bits').textContent=fmt(mi/Math.LN2)+' bits';$('gauss-rho').textContent=fmt(r,2);
+    const s=reset('gaussian-chart','Joint Gaussian scatterplot');
+    label(s,360,30,'Joint Gaussian · ρ = '+fmt(r,2));
+    scatter(s,gx.map((x,i)=>[x,r*x+Math.sqrt(1-r*r)*gv[i]]),[-3.5,3.5,-3.5,3.5]);
+  }
+  bind(['rho'],gaussian);
+  const nonlinearData=Array.from({length:200},(_,i)=>{const x=(i+.5)/200;return {x,n:normal(),a:normal(),b:normal()};});
+  function nonlinear() {
+    const amp=output('nonlinear-noise'),bins=Number($('bins').value);$('bins-value').value=bins;
+    const square=$('nonlinear-mode').value==='square';
+    const points=nonlinearData.flatMap(p=>square?[[p.x,p.x*p.x+amp*p.n],[-p.x,p.x*p.x+amp*p.n]]:[[p.x,p.a],[-p.x,p.b]]);
+    const n=points.length,meanY=points.reduce((t,p)=>t+p[1],0)/n;
+    const xy=points.reduce((t,p)=>t+p[0]*(p[1]-meanY),0),xx=points.reduce((t,p)=>t+p[0]**2,0),yy=points.reduce((t,p)=>t+(p[1]-meanY)**2,0);
+    const ymin=Math.min(...points.map(p=>p[1])),ymax=Math.max(...points.map(p=>p[1]));
+    const counts=Array(bins*bins).fill(0),cx=Array(bins).fill(0),cy=Array(bins).fill(0);
+    points.forEach(([x,y])=>{const a=Math.min(bins-1,Math.floor((x+1)/2*bins)),b=Math.min(bins-1,Math.floor((y-ymin)/(ymax-ymin)*bins));counts[a*bins+b]++;cx[a]++;cy[b]++;});
+    let mi=0;counts.forEach((c,i)=>{if(c)mi+=(c/n)*Math.log2(c*n/(cx[Math.floor(i/bins)]*cy[i%bins]));});
+    $('nonlinear-r').textContent=fmt(xy/Math.sqrt(xx*yy));$('nonlinear-mi').textContent=fmt(mi)+' bits';$('nonlinear-n').textContent=n+' samples';
+    const s=reset('nonlinear-chart','Nonlinear dependence and finite-sample binned MI');
+    label(s,360,28,square?'Y = X² + noise · paired ±X':'Independent fixed sample · finite-sample estimate');
+    scatter(s,points,[-1,1,ymin-.05*(ymax-ymin),ymax+.05*(ymax-ymin)],bins);
+  }
+  bind(['nonlinear-mode','nonlinear-noise','bins'],nonlinear);
+  function channel() {
+    const a=output('noise-one'),b=output('noise-two'),e=a+b-2*a*b,xy=1-h2(a),xz=1-h2(e);
+    $('channel-xy').textContent=fmt(xy)+' bits';$('channel-xz').textContent=fmt(xz)+' bits';$('channel-effective').textContent=fmt(e);
+    const s=reset('channel-chart','Information loss through cascaded binary symmetric channels');
+    label(s,360,51,'X   →   Y   →   Z',{'font-size':29});label(s,360,87,'flip ε₁ = '+fmt(a,2)+'     ·     flip ε₂ = '+fmt(b,2));
+    label(s,360,122,'Effective flip probability = '+fmt(e));bars(s,[['I(X;Y)',xy,teal],['I(X;Z)',xz,coral]]);label(s,360,319,'I(X;Z) ≤ I(X;Y)');
+  }
+  bind(['noise-one','noise-two'],channel);
+  const trials=[1,0,1,1,0,0,1,0];
+  function choose(n,k) {let c=1;for(let i=1;i<=k;i++)c=c*(n-i+1)/i;return c;}
+  function sufficient() {
+    const theta=output('trial-theta'),k=trials.reduce((a,b)=>a+b,0),n=trials.length,comb=choose(n,k);
+    const likelihood=t=>t**k*(1-t)**(n-k),value=likelihood(theta);
+    $('suff-k').textContent=k+' / '+n;$('suff-sequence').textContent=fmt(value,6);$('suff-count').textContent=fmt(comb*value,6);
+    Array.from($('trial-sequence').children).forEach((b,i)=>{b.dataset.bit=trials[i];b.textContent=trials[i]?'H':'T';b.setAttribute('aria-label','Trial '+(i+1)+': '+(trials[i]?'head':'tail'));});
+    const max=Math.max(...Array.from({length:201},(_,i)=>comb*likelihood(i/200)))*1.12;
+    const s=reset('sufficient-chart','Ordered sequence and count-event likelihood functions');
+    const px=t=>70+580*t,py=v=>275-218*v/max;
+    label(s,360,27,'Same k ⇒ same likelihood curve · binomial factor = '+comb);
+    line(s,70,275,650,275);line(s,70,55,70,275);
+    [1,comb].forEach((factor,i)=>{let d='';for(let j=0;j<=200;j++)d+=(j?'L':'M')+px(j/200)+','+py(factor*likelihood(j/200));el(s,'path',{d,fill:'none',stroke:i?coral:teal,'stroke-width':3});});
+    line(s,px(theta),55,px(theta),275,ink);[1,comb].forEach((factor,i)=>el(s,'circle',{cx:px(theta),cy:py(factor*value),r:5,fill:i?coral:teal}));
+    label(s,360,317,'θ');label(s,70,295,'0');label(s,650,295,'1');label(s,40,165,'p');
+    label(s,62,60,fmt(max,3),{'text-anchor':'end','font-size':11});
+  }
+  bind(['trial-theta'],sufficient);
+  Array.from($('trial-sequence').children).forEach((b,i)=>b.addEventListener('click',()=>{trials[i]=1-trials[i];sufficient();}));
+  $('reorder-trials').addEventListener('click',()=>{trials.unshift(trials.pop());sufficient();});
+  document.querySelectorAll('[data-language]').forEach(button=>{
+    if(button.tagName!=='BUTTON')return;
+    button.addEventListener('click',()=>{const lang=button.dataset.language;document.body.dataset.language=lang;document.documentElement.lang=lang==='en'?'en':'zh-CN';document.querySelectorAll('button[data-language]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));});
+  });
+  document.querySelectorAll('.quiz').forEach(q=>q.querySelectorAll('[data-choice]').forEach(button=>button.addEventListener('click',()=>{
+    const correct=button.dataset.choice===q.dataset.answer;
+    q.querySelectorAll('[data-choice]').forEach(b=>b.classList.remove('correct','wrong'));
+    button.classList.add(correct?'correct':'wrong');
+    const feedback=q.querySelector('.feedback');feedback.textContent=(correct?'正确 / Correct. ':'再想一想 / Try again. ')+q.dataset.explanation;feedback.className='feedback '+(correct?'correct':'wrong');
+  })));
+  const tocLinks=Array.from(document.querySelectorAll('.toc a'));
+  const observer=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)tocLinks.forEach(a=>a.classList.toggle('active',a.hash==='#'+e.target.id));}),{rootMargin:'-10% 0px -65% 0px'});
+  document.querySelectorAll('main section[id]').forEach(s=>observer.observe(s));
+})();
+</script></body></html>
