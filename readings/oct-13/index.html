@@ -1,0 +1,298 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Bilingual interactive reading notes on Section 8.7: bound optimization, the basic EM algorithm, and Gaussian mixture updates. Skip 8.7.3.4 and 8.7.3.5."><title>CS 473 · EM 算法 / Expectation Maximization</title><script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']]},options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']}};</script><script async id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script><style>
+    :root {
+      --ink: #18201f;
+      --muted: #5d6865;
+      --paper: #f6f7f4;
+      --surface: #ffffff;
+      --line: #d8ddd8;
+      --teal: #087f72;
+      --teal-soft: #e3f4f0;
+      --coral: #dc6547;
+      --coral-soft: #fff0eb;
+      --gold: #b47a0b;
+      --gold-soft: #fff6dc;
+      --blue: #3c66c4;
+      --purple: #7752b6;
+      --red: #b23b4b;
+      --shadow: 0 18px 48px rgba(28, 50, 45, .10);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background-color: var(--paper);
+      background-image:
+        linear-gradient(rgba(8,127,114,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(8,127,114,.04) 1px, transparent 1px);
+      background-size: 32px 32px;
+      font-family: Inter, "Noto Sans SC", "Microsoft YaHei", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 17px;
+      line-height: 1.76;
+    }
+    a { color: var(--teal); text-underline-offset: 3px; }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    svg { display: block; width: 100%; height: auto; }
+    .skip-link { position: absolute; top: -5rem; left: 1rem; z-index: 10; padding: .6rem .9rem; color: white; background: var(--ink); border-radius: 9px; }
+    .skip-link:focus { top: 1rem; }
+
+    .hero { position: relative; overflow: hidden; color: white; background: #173532; border-bottom: 5px solid var(--coral); }
+    .hero::after {
+      content: "∑";
+      position: absolute;
+      right: max(3vw, 1rem);
+      bottom: -6rem;
+      color: rgba(255,255,255,.055);
+      font-family: Georgia, "Noto Serif SC", "Songti SC", serif;
+      font-size: clamp(15rem, 30vw, 30rem);
+      line-height: 1;
+      pointer-events: none;
+    }
+    .hero-inner { position: relative; z-index: 1; max-width: 1180px; margin: 0 auto; padding: 4.2rem 2rem 3.8rem; }
+    .eyebrow { display: flex; align-items: center; gap: .55rem; margin: 0 0 1rem; color: #bfe4dd; font-size: .8rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+    .eyebrow::before { content: ""; width: 2rem; height: 3px; background: var(--coral); }
+    h1 { max-width: 940px; margin: 0; font-family: Georgia, "Noto Serif SC", "Songti SC", serif; font-size: clamp(2.45rem, 6vw, 5.2rem); line-height: 1.02; letter-spacing: -.045em; }
+    .hero-lead { max-width: 760px; margin: 1.3rem 0 0; color: #d7e9e5; font-size: clamp(1.03rem, 2vw, 1.27rem); line-height: 1.65; }
+    .hero-tags { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1.7rem; }
+    .hero-tags span { padding: .32rem .68rem; border: 1px solid rgba(255,255,255,.25); border-radius: 999px; font-size: .8rem; }
+    .language-switch { display: flex; gap: .45rem; align-items: center; margin-top: 1.2rem; font-size: .84rem; }
+    .language-switch a, .language-switch strong { padding: .32rem .72rem; border: 1px solid rgba(255,255,255,.35); border-radius: 999px; }
+    .language-switch a { color: white; text-decoration: none; }
+    .language-switch a:hover { background: rgba(255,255,255,.12); }
+    .language-switch strong { color: #173532; background: white; }
+
+    .page-shell { display: grid; grid-template-columns: 230px minmax(0, 820px); gap: clamp(2rem, 6vw, 5.5rem); align-items: start; max-width: 1180px; margin: 0 auto; padding: 3rem 2rem 6rem; }
+    .toc { position: sticky; top: 1.5rem; padding: 1rem 0; }
+    .toc strong { display: block; margin-bottom: .7rem; color: var(--muted); font-size: .75rem; letter-spacing: .12em; text-transform: uppercase; }
+    .toc a { display: block; padding: .42rem .7rem; color: var(--muted); border-left: 2px solid var(--line); text-decoration: none; font-size: .87rem; line-height: 1.35; }
+    .toc a:hover, .toc a.active { color: var(--teal); border-left-color: var(--teal); background: var(--teal-soft); }
+    main { min-width: 0; }
+    section { scroll-margin-top: 1.5rem; }
+    .chapter { margin-top: 4.8rem; }
+    .chapter:first-child { margin-top: 0; }
+    .section-kicker { margin: 0 0 .45rem; color: var(--teal); font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    h2, h3 { font-family: Georgia, "Noto Serif SC", "Songti SC", serif; letter-spacing: -.025em; line-height: 1.23; }
+    h2 { margin: 0 0 1.2rem; font-size: clamp(1.9rem, 4vw, 3rem); }
+    h3 { margin: 2.7rem 0 .8rem; font-size: clamp(1.3rem, 2.5vw, 1.78rem); }
+    p { margin: .8rem 0; }
+    .lead { color: #354441; font-size: 1.09rem; }
+    .plain-language { margin: 1.5rem 0; padding: 1.15rem 1.3rem; background: var(--teal-soft); border-left: 4px solid var(--teal); border-radius: 0 12px 12px 0; }
+    .plain-language strong { color: #075f56; }
+    .warning { background: var(--coral-soft); border-left-color: var(--coral); }
+    .warning strong { color: #99432d; }
+    .formula { overflow-x: auto; margin: 1.3rem 0; padding: 1.15rem 1.3rem; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 7px 22px rgba(28,50,45,.05); text-align: center; }
+    .formula small { display: block; margin-top: .5rem; color: var(--muted); text-align: left; }
+    .concept-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .8rem; margin: 1.3rem 0; }
+    .concept { padding: 1rem; background: var(--surface); border-top: 4px solid var(--teal); box-shadow: var(--shadow); }
+    .concept:nth-child(2) { border-top-color: var(--coral); }
+    .concept:nth-child(3) { border-top-color: var(--gold); }
+    .concept b { display: block; margin-bottom: .25rem; }
+    .concept span { color: var(--muted); font-size: .87rem; line-height: 1.5; }
+
+    .lab { margin: 2rem 0 2.5rem; padding: clamp(1rem, 3vw, 1.6rem); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .lab-header { display: flex; gap: 1rem; align-items: flex-start; justify-content: space-between; margin-bottom: 1rem; }
+    .lab-header h3 { margin: 0; font-size: 1.3rem; }
+    .lab-header p { margin: .25rem 0 0; color: var(--muted); font-size: .88rem; line-height: 1.5; }
+    .lab-number { flex: 0 0 auto; display: grid; width: 2.3rem; height: 2.3rem; place-items: center; color: white; background: var(--ink); border-radius: 50%; font-weight: 800; }
+    .controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1rem 0; padding: .9rem 1rem; background: #f2f5f2; border-radius: 12px; }
+    .control label { display: flex; justify-content: space-between; gap: .5rem; margin-bottom: .32rem; color: var(--muted); font-size: .8rem; font-weight: 750; }
+    input[type="range"] { width: 100%; accent-color: var(--teal); }
+    .chart-frame { overflow: hidden; background: #fbfdfc; border: 1px solid var(--line); border-radius: 12px; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: .65rem; margin-top: 1rem; }
+    .stat { padding: .7rem .8rem; background: #f5f7f5; border: 1px solid var(--line); border-radius: 10px; }
+    .stat span { display: block; color: var(--muted); font-size: .72rem; line-height: 1.35; }
+    .stat b { font-size: 1.08rem; }
+    .chart-note { margin: .7rem 0 0; color: var(--muted); font-size: .82rem; line-height: 1.55; }
+    .legend { display: flex; flex-wrap: wrap; gap: 1rem; margin: .65rem 0; color: var(--muted); font-size: .8rem; }
+    .legend span { display: inline-flex; align-items: center; gap: .4rem; }
+    .swatch { width: .85rem; height: .85rem; border-radius: 50%; background: var(--teal); }
+    .swatch.coral { background: var(--coral); }
+    .swatch.gold { background: var(--gold); }
+    .swatch.blue { background: var(--blue); }
+    .toggle-row { display: flex; flex-wrap: wrap; gap: .6rem; margin: .8rem 0; }
+    .toggle-row button, .quiz button { padding: .52rem .82rem; color: var(--ink); background: white; border: 1px solid #b9c3be; border-radius: 9px; }
+    .toggle-row button[aria-pressed="true"], .quiz button:hover { color: white; background: var(--teal); border-color: var(--teal); }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; }
+    .mini-panel { padding: 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+    .mini-panel h4 { margin: 0 0 .35rem; font-size: 1rem; }
+    .mini-panel p { margin: .3rem 0; color: var(--muted); font-size: .86rem; }
+    .step-list { counter-reset: steps; padding: 0; list-style: none; }
+    .step-list li { position: relative; margin: 1rem 0; padding-left: 3rem; }
+    .step-list li::before { counter-increment: steps; content: counter(steps); position: absolute; left: 0; top: .05rem; display: grid; width: 2rem; height: 2rem; place-items: center; color: white; background: var(--teal); border-radius: 50%; font-weight: 800; }
+    .quiz { margin: 1rem 0; padding: 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+    .quiz p { margin-top: 0; }
+    .quiz-options { display: flex; flex-wrap: wrap; gap: .6rem; }
+    .feedback { min-height: 1.7rem; margin: .65rem 0 0; color: var(--muted); font-size: .9rem; }
+    .feedback.correct { color: var(--teal); font-weight: 700; }
+    .feedback.wrong { color: var(--red); font-weight: 700; }
+    .recap { margin-top: 4rem; padding: 1.5rem; color: white; background: #173532; border-radius: var(--radius); }
+    .recap h2 { margin-bottom: .8rem; font-size: 1.75rem; }
+    .recap ul { margin-bottom: 0; padding-left: 1.25rem; }
+    .recap li { margin: .5rem 0; }
+    footer { max-width: 820px; margin: 0 auto; padding: 0 2rem 3rem; color: var(--muted); font-size: .78rem; text-align: center; }
+
+    @media (max-width: 880px) {
+      .page-shell { grid-template-columns: 1fr; }
+      .toc { position: static; display: flex; overflow-x: auto; gap: .25rem; padding: .5rem 0; }
+      .toc strong { display: none; }
+      .toc a { flex: 0 0 auto; border: 0; border-bottom: 2px solid var(--line); }
+      .toc a:hover, .toc a.active { border-bottom-color: var(--teal); }
+    }
+    @media (max-width: 640px) {
+      body { font-size: 16px; }
+      .hero-inner, .page-shell { padding-left: 1rem; padding-right: 1rem; }
+      .hero-inner { padding-top: 3rem; padding-bottom: 3rem; }
+      .concept-grid, .two-col, .controls, .stats { grid-template-columns: 1fr; }
+      .chapter { margin-top: 3.7rem; }
+    }
+    @media print {
+      body { background: white; }
+      .hero { color: var(--ink); background: white; border-bottom: 2px solid var(--ink); }
+      .hero-lead, .eyebrow { color: var(--muted); }
+      .hero-tags span { color: var(--ink); border-color: var(--line); }
+      .hero::after, .toc, .controls, .toggle-row, .quiz { display: none; }
+      .page-shell { display: block; max-width: 850px; padding-top: 2rem; }
+      .lab, .concept { box-shadow: none; break-inside: avoid; }
+    }
+  
+.bilingual {display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin:.9rem 0}
+.bilingual p {margin:0}.en {color:var(--muted)}
+body[data-language="zh"] .en,body[data-language="en"] .zh {display:none}
+body[data-language="zh"] .bilingual,body[data-language="en"] .bilingual {grid-template-columns:1fr}
+.hero .en {color:#d7e9e5}.recap .en {color:#d7e9e5}
+.language-switch button {border:1px solid #ffffff70;border-radius:999px;padding:.35rem .7rem;color:white;background:transparent}
+.language-switch button[aria-pressed="true"] {color:#173532;background:white}
+h1 .en,h2 .en,h3 .en {display:block;font-size:.6em;margin-top:.5rem;letter-spacing:0}
+.recap .formula {color:var(--ink)}
+.table-wrap {overflow:auto}table {width:100%;border-collapse:collapse;background:white;margin:1rem 0}
+th,td {border:1px solid var(--line);padding:.6rem;text-align:center}
+.focus {border:2px solid var(--coral);padding:1.2rem;border-radius:18px;background:#fffaf6}
+.source {font-size:.82rem;color:var(--muted)}.control input[type="number"] {width:100%;padding:.3rem;border:1px solid var(--line);border-radius:6px}
+.lab .bilingual {font-size:.9rem}.stats {grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+.legend-line {width:1.2rem;height:3px;display:inline-block;background:var(--teal);vertical-align:middle;margin-right:.3rem}
+.legend-line.coral {background:var(--coral)}.legend-line.blue {background:var(--blue)}
+.toc a {font-size:.8rem}.quiz .feedback {min-height:2rem}.formula {font-size:.95rem}
+:focus-visible {outline:3px solid var(--gold);outline-offset:4px}
+@media(max-width:640px){.bilingual {grid-template-columns:1fr;gap:.6rem}.en{border-left:2px solid var(--line);padding-left:.7rem}.hero-inner{padding-top:2.5rem;padding-bottom:2rem}}
+@media(prefers-reduced-motion:reduce){html {scroll-behavior:auto}}
+
+.control select {width:100%;padding:.45rem;color:var(--ink);border:1px solid var(--line);border-radius:8px;background:white}
+.sequence {display:flex;flex-wrap:wrap;gap:.4rem;margin:1rem 0}.sequence button {padding:.5rem .7rem;background:var(--teal-soft);color:var(--teal);border:1px solid var(--line);border-radius:8px}
+.sequence button[data-bit="0"] {background:var(--coral-soft);color:#99432d}
+.table-wrap table {font-size:.84rem}.chart-note {margin-top:.65rem}.formula mjx-container {max-width:none}
+
+.control select{width:100%;padding:.5rem;border:1px solid var(--line);border-radius:8px;background:white;color:var(--ink)}
+.toggle-row{display:flex;flex-wrap:wrap;gap:.5rem;margin:1rem 0}.toggle-row button{padding:.55rem .85rem;border:1px solid var(--line);border-radius:9px;background:white;color:var(--ink)}
+.toggle-row button:disabled{opacity:.45;cursor:not-allowed}.phase-note{padding:.9rem;background:var(--teal-soft);border-left:3px solid var(--teal);border-radius:8px;font-size:.9rem}
+.algorithm{counter-reset:steps;list-style:none;padding:0}.algorithm li{counter-increment:steps;padding:.8rem 1rem .8rem 3rem;margin:.5rem 0;border:1px solid var(--line);border-radius:10px;position:relative}.algorithm li:before{content:counter(steps);position:absolute;left:1rem;top:.8rem;color:var(--teal);font-weight:bold}
+.table-wrap td,.table-wrap th{font-size:.82rem}.chart-frame+ .chart-frame{margin-top:1rem}.small-label{font-size:.8rem;color:var(--muted)}
+</style></head><body data-language="both"><a class="skip-link" href="#main">跳到正文 / Skip to content</a><header class="hero"><div class="hero-inner"><p class="eyebrow">CS 473 · OCT 13 · §8.7</p><h1><span class="zh">先猜分组，再学参数</span><span class="en" lang="en">Infer Groups, Then Learn Parameters</span></h1><div class="bilingual"><p class="zh" lang="zh-CN">逐步执行 E-step 和 M-step，把隐藏标签、加权拟合与紧下界连起来。</p><p class="en" lang="en">Step through E and M to connect hidden labels, weighted fitting, and a tight lower bound.</p></div><div class="hero-tags"><span>Expectation maximization</span><span>Responsibilities</span><span>Gaussian mixtures</span><span>ELBO</span><span>Bound optimization</span></div><nav class="language-switch" aria-label="Language and directory"><a href="../../zh/">← 中文目录</a><a href="../../">English directory</a><a href="../oct-08/">← 上次 / Previous</a><button type="button" data-language="both" aria-pressed="true">中英对照 / Bilingual</button><button type="button" data-language="zh" aria-pressed="false">中文</button><button type="button" data-language="en" aria-pressed="false">English</button></nav></div></header><div class="page-shell"><nav class="toc" aria-label="Page contents"><strong>READING ROUTE</strong><a href="#map">阅读路线 / Reading map</a><a href="#setup">观测与隐变量 / Setup</a><a href="#estep">E-step · Responsibility</a><a href="#mstep">M-step · Weighted fitting</a><a href="#algorithm">完整 EM 实验 / EM loop</a><a href="#bound">8.7.1 · Bound optimization</a><a href="#elbo">8.7.2 · ELBO & KL</a><a href="#example">8.7.3.3 · Old Faithful</a><a href="#check">自测 / Self-check</a><a href="#recap">回顾 / Recap</a></nav><main id="main"><section class="chapter" id="map"><p class="section-kicker">OCT 13 · READING MAP</p><h2><span class="zh">缺了标签，参数还怎么学？</span><span class="en" lang="en">How do we learn when labels are hidden?</span></h2><div class="bilingual"><p class="zh" lang="zh-CN">假设一批数据来自几个高斯分布，但你只看得到数值，不知道每个点来自哪一组。分组需要均值和方差，估计均值和方差又需要分组。EM 用两步交替打破这个循环：先计算“属于各组的概率”，再按这些概率重新估计参数。</p><p class="en" lang="en">Suppose observations come from several Gaussians, but their component labels are hidden. Assigning points needs means and variances, while estimating those parameters needs assignments. EM alternates two operations: calculate probabilities of membership, then re-estimate parameters using those probabilities.</p></div><div class="concept-grid"><div class="concept"><b>E-step · 期望步</b><span>固定参数，推断隐变量<br>Fix parameters; infer hidden variables</span></div><div class="concept"><b>M-step · 最大化步</b><span>固定责任度，更新参数<br>Fix responsibilities; update parameters</span></div><div class="concept"><b>Lower bound · 下界</b><span>先贴住目标，再向上走<br>Touch the objective, then improve</span></div></div><div class="plain-language"><div class="bilingual"><p class="zh" lang="zh-CN"><strong>本次范围：</strong>8.7.1、8.7.2（含其三个子节）、8.7.3.1–8.7.3.3。跳过 8.7.3.4、8.7.3.5。按老师要求，重点理解基本 EM；MAP 推导和混合模型的非凸性专节不展开。</p><p class="en" lang="en"><strong>Scope:</strong> §8.7.1, §8.7.2 and its three subsections, and §§8.7.3.1–8.7.3.3. Skip §§8.7.3.4 and 8.7.3.5. Follow the instructor’s focus on the basic EM algorithm; omit the dedicated MAP and nonconvexity sections.</p></div></div><p class="source">Kevin P. Murphy · <cite>Probabilistic Machine Learning: An Introduction</cite> · MIT Press, 2022 · Online version April 18, 2025<br>印刷页 / printed pp. 312–317（p.317 仅 Figure 8.25 / figure only） · PDF pp. 342–347<br>Prepared Oct 13, 2026 · 自编双语讲解与教学实验 / Independently authored bilingual explanations and teaching experiments</p></section><section class="chapter" id="setup"><p class="section-kicker">8.7.2 · THE PROBLEM</p><h2><span class="zh">观测数据与完整数据，要分清</span><span class="en" lang="en">Distinguish observed data from complete data</span></h2><div class="bilingual"><p class="zh" lang="zh-CN">记 yₙ 为看到的数据，zₙ 为没有看到的标签或缺失值，θ 为要估计的参数。完整数据是 (yₙ,zₙ)。如果 zₙ 已知，每组的均值、方差和比例很容易算；zₙ 不知道时，我们必须把所有可能情况加起来。</p><p class="en" lang="en">Let yₙ be an observation, zₙ its hidden label or missing value, and θ the parameters to estimate. Complete data are (yₙ,zₙ). Known labels make component means, variances, and proportions easy to estimate. Hidden labels require summing over their possibilities.</p></div><div class="formula">\[p(y_n\mid\theta)=\sum_{z_n}p(y_n,z_n\mid\theta),\qquad \ell(\theta)=\sum_{n=1}^N\log\!\left[\sum_{z_n}p(y_n,z_n\mid\theta)\right]\]</div><div class="bilingual"><p class="zh" lang="zh-CN">困难在于“先求和，再取 log”。一般 log(a+b)≠log a+log b，不能直接把问题拆成各组独立的拟合。EM 优化的是这个观测数据的 log likelihood，而不是把猜出的标签当成真实标签。</p><p class="en" lang="en">The difficulty is the logarithm outside the sum. In general, log(a+b)≠log a+log b, so the objective does not separate into independent component fits. EM targets this observed-data log likelihood; it does not treat guessed labels as ground truth.</p></div><div class="table-wrap"><table><tr><th>Symbol</th><th>中文含义</th><th>Meaning</th></tr><tr><td>yₙ</td><td>第 n 个可见样本</td><td>Observed example n</td></tr><tr><td>zₙ</td><td>未观测的组别或缺失值</td><td>Hidden component label or missing value</td></tr><tr><td>qₙ(zₙ), rₙₖ</td><td>隐变量分布；GMM 中的责任度</td><td>Distribution over hidden states; GMM responsibility</td></tr><tr><td>θ=(π,μ,Σ)</td><td>GMM 的混合比例、均值、协方差</td><td>GMM weights, means, and covariances</td></tr></table></div></section><section class="chapter" id="estep"><p class="section-kicker">8.7.2.2 + 8.7.3.1 · E STEP</p><h2><span class="zh">E-step：算概率，不做硬猜测</span><span class="en" lang="en">E-step: infer probabilities instead of hard guesses</span></h2><div class="bilingual"><p class="zh" lang="zh-CN">给定当前参数 θ⁽ᵗ⁾，计算每个隐变量的后验分布 qₙ⁽ᵗ⁾(zₙ)=p(zₙ|yₙ,θ⁽ᵗ⁾)。GMM 中，这个概率叫 responsibility（责任度）：这个成分对解释这个样本负责多少。每个样本的一行责任度之和为 1。</p><p class="en" lang="en">With the current parameters θ⁽ᵗ⁾ fixed, compute qₙ⁽ᵗ⁾(zₙ)=p(zₙ|yₙ,θ⁽ᵗ⁾). For a GMM, these posterior probabilities are responsibilities: how much each component accounts for a point. Each row of responsibilities sums to 1.</p></div><div class="formula">\[r_{nk}^{(t)}=p(z_n=k\mid y_n,\theta^{(t)})=\frac{\pi_k^{(t)}\,\mathcal N(y_n\mid\mu_k^{(t)},\Sigma_k^{(t)})}{\sum_{j=1}^K\pi_j^{(t)}\,\mathcal N(y_n\mid\mu_j^{(t)},\Sigma_j^{(t)})}\]</div><div class="bilingual"><p class="zh" lang="zh-CN">分子是“先属于 k 的比例 × k 产生这个数值的密度”，分母让各组加起来变成 1。πₖ 是观察样本之前的成分概率，rₙₖ 是看到 yₙ 之后的成分概率，二者不能混淆。高斯密度的值本身不是“属于该组的概率”。</p><p class="en" lang="en">The numerator combines the prior component weight with the density of producing this value. The denominator normalizes across components. πₖ is a component probability before observing yₙ; rₙₖ is its probability afterward. A Gaussian density value alone is not a membership probability.</p></div><div class="lab" id="responsibility-lab"><div class="lab-header"><h3><span class="zh">移动一个点，看它如何分摊责任</span><span class="en" lang="en">Move a point and see how its responsibility is shared</span></h3><span class="lab-number">1</span></div><div class="bilingual"><p class="zh" lang="zh-CN">教学例子：两个一维高斯，μ₁=−1.5、μ₂=1.5，标准差均为 1.2。改变 y 和先验比例 π₁，观察加权密度与后验。即使同样靠近两个均值，组别比例也会影响责任度。</p><p class="en" lang="en">Teaching example: two 1D Gaussians with μ₁=−1.5, μ₂=1.5, and standard deviations 1.2. Change y and π₁ to compare weighted densities and posterior membership. Component proportions matter even at equal distances.</p></div><div class="controls"><div class="control"><label for="point-y">观测值 y / Observation <output id="point-y-value">0</output></label><input id="point-y" type="range" min="-4" max="4" step="0.05" value="0"></div><div class="control"><label for="prior-pi">混合比例 π₁ / Mixture weight <output id="prior-pi-value">0.5</output></label><input id="prior-pi" type="range" min="0.05" max="0.95" step="0.01" value="0.5"></div></div><div class="legend"><span><i class="legend-line"></i>π₁ N(y|μ₁,σ²)</span><span><i class="legend-line coral"></i>π₂ N(y|μ₂,σ²)</span></div><div class="chart-frame"><svg id="responsibility-chart" viewBox="0 0 720 340" role="img" aria-label="移动一个点，看它如何分摊责任 / Move a point and see how its responsibility is shared"></svg></div><div class="stats" aria-live="polite"><div class="stat"><span>r₁ = p(z=1|y)</span><b id="resp-one">—</b></div><div class="stat"><span>r₂ = p(z=2|y)</span><b id="resp-two">—</b></div><div class="stat"><span>r₁ + r₂</span><b id="resp-sum">—</b></div></div></div><div class="plain-language"><div class="bilingual"><p class="zh" lang="zh-CN">E-step 不只计算 z 的均值再代入。需要的是完整数据 log likelihood 的期望，或足以计算它的期望充分统计量。一般 E[f(z)]≠f(E[z])。GMM 的 one-hot 标签 zₙₖ=I(zₙ=k) 满足 E[zₙₖ]=rₙₖ，所以责任度恰好够用。</p><p class="en" lang="en">Do not merely insert a mean value of z. EM needs the expectation of the complete-data log likelihood, or the expected sufficient statistics needed to compute it. In general, E[f(z)]≠f(E[z]). For a GMM, the one-hot indicator zₙₖ=I(zₙ=k) has expectation rₙₖ, so responsibilities suffice.</p></div></div></section><section class="chapter" id="mstep"><p class="section-kicker">8.7.2.3 + 8.7.3.2 · M STEP</p><h2><span class="zh">M-step：把软分组当作权重</span><span class="en" lang="en">M-step: use soft assignments as weights</span></h2><div class="bilingual"><p class="zh" lang="zh-CN">现在冻结本轮 E-step 算出的 q⁽ᵗ⁾，对参数 θ 最大化期望完整数据 log likelihood。冻结很关键：试不同 θ 时不要重新计算责任度，否则优化的就不是本轮的 M-step 目标。</p><p class="en" lang="en">Freeze q⁽ᵗ⁾ from the E-step and maximize the expected complete-data log likelihood over θ. Keeping q fixed is essential: recomputing responsibilities for each candidate θ changes the M-step objective.</p></div><div class="formula">\[\theta^{(t+1)}=\arg\max_\theta\sum_n\mathbb E_{q_n^{(t)}}\!\left[\log p(y_n,z_n\mid\theta)\right]\]</div><div class="bilingual"><p class="zh" lang="zh-CN">GMM 的期望完整目标就是加权 log likelihood。用 Nₖ 表示一个成分收到的“有效样本数”：一份样本可以贡献 0.8 份给第一组，0.2 份给第二组。Nₖ 可以不是整数。</p><p class="en" lang="en">For a GMM, the expected complete-data objective is a weighted log likelihood. Nₖ is a component’s effective sample count: a point can contribute 0.8 of a sample to one component and 0.2 to the other. Nₖ need not be an integer.</p></div><div class="formula">\[Q_{\mathrm{complete}}(\theta\mid\theta^{(t)})=\sum_n\sum_k r_{nk}^{(t)}\left[\log\pi_k+\log\mathcal N(y_n\mid\mu_k,\Sigma_k)\right]\]</div><div class="formula">\[N_k^{(t)}=\sum_n r_{nk}^{(t)},\qquad \pi_k^{(t+1)}=\frac{N_k^{(t)}}{N},\qquad \mu_k^{(t+1)}=\frac{\sum_n r_{nk}^{(t)}y_n}{N_k^{(t)}}\]</div><div class="formula">\[\Sigma_k^{(t+1)}=\frac{\sum_n r_{nk}^{(t)}(y_n-\mu_k^{(t+1)})(y_n-\mu_k^{(t+1)})^\top}{N_k^{(t)}}\]</div><div class="bilingual"><p class="zh" lang="zh-CN">均值是加权平均；协方差使用新均值来计算加权散布，除以 Nₖ，不是 Nₖ−1。这是最大似然更新。在一维中，协方差变成方差 σ²。两个成分的责任度逐点相加为 1，所以所有 Nₖ 相加为 N，所有新 πₖ 相加为 1。</p><p class="en" lang="en">The mean is a weighted average. The covariance measures weighted scatter around the new mean and divides by Nₖ, not Nₖ−1: this is a maximum-likelihood update. In 1D, covariance becomes variance σ². Since each point’s responsibilities sum to 1, effective counts sum to N and updated weights sum to 1.</p></div><div class="lab" id="weighted-lab"><div class="lab-header"><h3><span class="zh">让一个点贡献“部分样本”</span><span class="en" lang="en">Let a point contribute a fraction of a sample</span></h3><span class="lab-number">2</span></div><div class="bilingual"><p class="zh" lang="zh-CN">教学例子：固定 y=[−3,−2,−1,1,2,3]，手动调整它们给第一组的责任度 rₙ₁，第二组得到 1−rₙ₁。这些手动权重用于理解 M-step，不是由某个当前模型的 E-step 自动计算的。</p><p class="en" lang="en">Teaching example: fix y=[−3,−2,−1,1,2,3] and manually set rₙ₁; component 2 gets 1−rₙ₁. These manual weights illustrate the M-step; they are not automatically inferred by an E-step.</p></div><div class="controls"><div class="control"><label for="weight-0">y=-3 的 r₁ / r₁ at y=-3 <output id="weight-0-value">0.95</output></label><input id="weight-0" type="range" min="0.05" max="0.95" step="0.05" value="0.95"></div><div class="control"><label for="weight-1">y=-2 的 r₁ / r₁ at y=-2 <output id="weight-1-value">0.85</output></label><input id="weight-1" type="range" min="0.05" max="0.95" step="0.05" value="0.85"></div><div class="control"><label for="weight-2">y=-1 的 r₁ / r₁ at y=-1 <output id="weight-2-value">0.65</output></label><input id="weight-2" type="range" min="0.05" max="0.95" step="0.05" value="0.65"></div><div class="control"><label for="weight-3">y=1 的 r₁ / r₁ at y=1 <output id="weight-3-value">0.35</output></label><input id="weight-3" type="range" min="0.05" max="0.95" step="0.05" value="0.35"></div><div class="control"><label for="weight-4">y=2 的 r₁ / r₁ at y=2 <output id="weight-4-value">0.15</output></label><input id="weight-4" type="range" min="0.05" max="0.95" step="0.05" value="0.15"></div><div class="control"><label for="weight-5">y=3 的 r₁ / r₁ at y=3 <output id="weight-5-value">0.05</output></label><input id="weight-5" type="range" min="0.05" max="0.95" step="0.05" value="0.05"></div></div><div class="toggle-row"><button type="button" id="weighted-hard">硬分组示例 / Hard assignment</button><button type="button" id="weighted-soft">恢复软权重 / Restore soft weights</button></div><div class="table-wrap"><table><thead><tr><th>k</th><th>Nₖ</th><th>πₖ=Nₖ/6</th><th>μₖ</th><th>σ²ₖ</th></tr></thead><tbody id="weighted-table"></tbody></table></div><div class="chart-frame"><svg id="weighted-chart" viewBox="0 0 720 340" role="img" aria-label="让一个点贡献“部分样本” / Let a point contribute a fraction of a sample"></svg></div><div class="stats" aria-live="polite"><div class="stat"><span>N₁ / N₂</span><b id="weighted-n">—</b></div><div class="stat"><span>新均值 / New means</span><b id="weighted-means">—</b></div><div class="stat"><span>新方差 / New variances</span><b id="weighted-var">—</b></div></div></div><details><summary>期望充分统计量 / Expected sufficient statistics</summary><div class="bilingual"><p class="zh" lang="zh-CN">GMM 只需累积 Σₙrₙₖ、Σₙrₙₖyₙ、Σₙrₙₖyₙyₙᵀ。教材一般指数族形式为 T(y,z)ᵀθ−A(θ)，取期望后，T 换成 E[T]；M-step 相当于用这些期望统计量做参数拟合。</p><p class="en" lang="en">For a GMM, accumulate Σₙrₙₖ, Σₙrₙₖyₙ, and Σₙrₙₖyₙyₙᵀ. In the book’s exponential-family form T(y,z)ᵀθ−A(θ), taking expectations replaces T with E[T]. The M-step fits parameters from those expected statistics.</p></div><div class="formula">\[\sum_n\mathbb E_q[\log p(y_n,z_n\mid\theta)]=\sum_n\left(\mathbb E_q[T(y_n,z_n)]^\top\theta-A(\theta)\right)\]</div></details></section><section class="chapter" id="algorithm"><p class="section-kicker">BASIC EM · THE WHOLE LOOP</p><h2><span class="zh">把两步串起来，才是 EM</span><span class="en" lang="en">EM is the repeated two-step loop</span></h2><ol class="algorithm"><li><div class="bilingual"><p class="zh" lang="zh-CN">初始化合法的参数 θ⁽⁰⁾：混合比例为正且和为 1，协方差正定。</p><p class="en" lang="en">Initialize valid parameters θ⁽⁰⁾: positive mixture weights summing to 1 and positive-definite covariances.</p></div></li><li><div class="bilingual"><p class="zh" lang="zh-CN">E-step：固定 θ⁽ᵗ⁾，算隐变量后验或期望充分统计量。</p><p class="en" lang="en">E-step: fix θ⁽ᵗ⁾ and infer posterior distributions or expected sufficient statistics.</p></div></li><li><div class="bilingual"><p class="zh" lang="zh-CN">M-step：固定本轮后验，更新参数得到 θ⁽ᵗ⁺¹⁾。</p><p class="en" lang="en">M-step: fix this iteration’s posteriors and update parameters to θ⁽ᵗ⁺¹⁾.</p></div></li><li><div class="bilingual"><p class="zh" lang="zh-CN">重新计算观测数据 log likelihood；检查改善量是否很小，并设置最大迭代次数。否则回到 E-step。</p><p class="en" lang="en">Recompute the observed-data log likelihood. Check whether improvement is small and enforce an iteration limit; otherwise repeat the E-step.</p></div></li></ol><div class="lab" id="em-lab"><div class="lab-header"><h3><span class="zh">亲自执行 E-step 与 M-step</span><span class="en" lang="en">Execute the E-step and M-step yourself</span></h3><span class="lab-number">3</span></div><div class="bilingual"><p class="zh" lang="zh-CN">教学数据：固定的 60 个一维点，并非教材 Old Faithful 数据。两个高斯的 π、μ、σ² 都会更新。E-step 只改变责任度，M-step 才改变曲线与参数。表中的责任度保留本轮 E-step 的结果；完成 M-step 后，下一轮才用新参数重新计算。</p><p class="en" lang="en">Teaching data: 60 fixed 1D points, not the book’s Old Faithful dataset. Both Gaussians’ π, μ, and σ² are learned. The E-step changes responsibilities; the M-step changes parameters and curves. The table retains this iteration’s E-step responsibilities until the next E-step recomputes them.</p></div><div class="controls"><div class="control"><label for="em-init">起始参数 / Initial parameters</label><select id="em-init"><option value="overlap">重叠起点 / Overlapping start</option><option value="separated">分开的起点 / Separated start</option></select></div></div><div class="toggle-row"><button type="button" id="em-e">① E-step</button><button type="button" id="em-m" disabled>② M-step</button><button type="button" id="em-cycle">完整一轮 / One full cycle</button><button type="button" id="em-run">运行 12 轮 / Run 12 cycles</button><button type="button" id="em-reset">重置 / Reset</button></div><p class="phase-note" id="em-phase" aria-live="polite"></p><div class="table-wrap"><table><thead><tr><th>k</th><th>π</th><th>μ</th><th>σ²</th></tr></thead><tbody id="em-parameters"></tbody></table></div><p class="small-label">本轮责任度（前 8 点） / This iteration’s responsibilities (first 8 points)</p><div class="table-wrap"><table><thead><tr><th>n</th><th>yₙ</th><th>rₙ₁</th><th>rₙ₂</th></tr></thead><tbody id="em-responsibilities"></tbody></table></div><div class="chart-frame"><svg id="em-chart" viewBox="0 0 720 340" role="img" aria-label="亲自执行 E-step 与 M-step / Execute the E-step and M-step yourself"></svg></div><div class="stats" aria-live="polite"><div class="stat"><span>已完成 M-step / Completed M-steps</span><b id="em-iteration">—</b></div><div class="stat"><span>Observed log likelihood ℓ</span><b id="em-ll">—</b></div><div class="stat"><span>最近一次 Δℓ / Last improvement</span><b id="em-delta">—</b></div></div></div><div class="chart-frame"><svg id="em-history" viewBox="0 0 720 270" role="img" aria-label="Observed log likelihood after each M-step"></svg></div><div class="bilingual"><p class="zh" lang="zh-CN">图中的两条彩色曲线是加权成分密度，黑线是它们的和；底部每个点的颜色表示它的软责任度。历史图只在 M-step 后增加记录，因为 E-step 没有改 θ，观测数据似然不变。</p><p class="en" lang="en">Colored curves are weighted component densities; black is their sum. Point colors indicate soft responsibilities. History adds a record after each M-step, since the E-step leaves θ and the observed likelihood unchanged.</p></div><div class="plain-language"><div class="bilingual"><p class="zh" lang="zh-CN">一次迭代 = 一次 E-step + 一次 M-step。E-step 不会改变 μ；M-step 不是再给点分组。这里用 Δℓ 帮助观察收敛；有限次数或很小的改善量都不自动证明找到了全局最好解。</p><p class="en" lang="en">One iteration combines an E-step with an M-step. The E-step does not move μ; the M-step does not reassign points. Δℓ helps assess progress; finite iteration counts or small improvements do not establish global optimality.</p></div></div></section><section class="chapter" id="bound"><p class="section-kicker">8.7.1 · BOUND OPTIMIZATION</p><h2><span class="zh">为什么不会越学越差？先看下界</span><span class="en" lang="en">Why does the objective improve? Start with a lower bound</span></h2><div class="bilingual"><p class="zh" lang="zh-CN">MM 在最大化问题中指 minorize-maximize：在当前位置 θ⁽ᵗ⁾ 构造一个处处不超过 ℓ(θ) 的替代函数 B(θ|θ⁽ᵗ⁾)，并要求它恰好碰到当前目标值。优化这个更容易的函数，然后在新位置重新构造下界。教材用 Q 表示这个包含常数项的完整下界，这里改称 B，以免与上面的期望完整目标混淆。</p><p class="en" lang="en">For maximization, MM means minorize-maximize. Construct a surrogate B(θ|θ⁽ᵗ⁾) below ℓ(θ) everywhere and touching it at the current point. Optimize that easier function, then rebuild the bound at the new point. The book calls this full bound Q; here B distinguishes it from the expected complete-data objective above.</p></div><div class="formula">\[B(\theta\mid\theta^{(t)})\le\ell(\theta),\qquad B(\theta^{(t)}\mid\theta^{(t)})=\ell(\theta^{(t)})\]</div><div class="formula">\[\ell(\theta^{(t+1)})\ge B(\theta^{(t+1)}\mid\theta^{(t)})\ge B(\theta^{(t)}\mid\theta^{(t)})=\ell(\theta^{(t)})\]</div><div class="bilingual"><p class="zh" lang="zh-CN">第一步来自“下界不能高于目标”，第二步来自“让下界升高”，最后一步来自“旧位置处贴紧”。因此目标非递减。最大化时是下界；最小化时 majorize-minimize 使用上界。二次下界看起来像 Newton 的二次近似，但普通近似不保证处处在正确一侧，可能过冲或降低目标。</p><p class="en" lang="en">The first inequality uses the lower-bound property, the second raises the bound, and the final equality uses tightness at the old point. Hence the objective is nondecreasing. Minimization uses an upper bound in majorize-minimize. A quadratic bound resembles a Newton approximation, but an ordinary approximation need not stay on the correct side and can overshoot or reduce the objective.</p></div><div class="bilingual"><p class="zh" lang="zh-CN">这是精确 E-step、正确 M-step 的检查工具：若观测似然明显下降，应检查数学、实现和数值计算。无需每次严格增加；收敛时可以相等。教材指出缺失信息量会影响收敛速度，所以很小的改善也可能意味着进展缓慢。</p><p class="en" lang="en">This is a diagnostic for exact E-steps and valid M-steps: a meaningful decrease in observed likelihood calls for checking the derivation, implementation, and numerics. Improvement need not be strict; equality is possible at convergence. The book notes that missing information affects convergence speed, so small improvements can also reflect slow progress.</p></div></section><section class="chapter" id="elbo"><p class="section-kicker">8.7.2.1–8.7.2.3 · THE EM BOUND</p><h2><span class="zh">EM 怎样把下界贴到似然上？</span><span class="en" lang="en">How does EM make its bound touch the likelihood?</span></h2><div class="bilingual"><p class="zh" lang="zh-CN">引入隐变量的分布 qₙ(zₙ)。利用 log 的凹性和 Jensen 不等式，得到 evidence lower bound（ELBO）。原来的“log 外面套求和”变成了“对 log joint 的加权平均”，再加 q 的熵。</p><p class="en" lang="en">Introduce distributions qₙ(zₙ). The concavity of log and Jensen’s inequality give an evidence lower bound, or ELBO. The logarithm of a sum becomes a weighted average of log joint probabilities, plus the entropy of q.</p></div><div class="formula">\[\ell(\theta)=\sum_n\log\mathbb E_{q_n}\!\left[\frac{p(y_n,z_n\mid\theta)}{q_n(z_n)}\right]\ge\sum_n\mathbb E_{q_n}[\log p(y_n,z_n\mid\theta)]+\sum_n H(q_n)\equiv\mathcal L(\theta,q)\]</div><div class="bilingual"><p class="zh" lang="zh-CN">最关键的关系不是背 Jensen，而是知道差距是什么：目标减去 ELBO，恰好是 q 与当前隐变量后验之间的 KL。若 q 与后验相同，KL=0，界就在当前 θ 贴紧。这里默认分布有适当支持，使期望与比值有定义。</p><p class="en" lang="en">The key is the gap: the likelihood minus the ELBO equals the KL divergence from q to the current posterior. When q equals that posterior, the KL is zero and the bound is tight at the current θ. The distributions are assumed to have appropriate support for the expectations and ratios.</p></div><div class="formula">\[\ell(\theta)-\mathcal L(\theta,q)=\sum_n D_{\mathrm{KL}}\!\left(q_n(z_n)\parallel p(z_n\mid y_n,\theta)\right)\ge0\]</div><div class="bilingual"><p class="zh" lang="zh-CN">E-step：θ 不动，把 q 换成当前后验，让界贴紧。M-step：q 不动，让 θ 提高这个界；由于 H(q) 对 θ 是常数，可在最大化时去掉。去掉熵不影响新 θ，但不能说只剩的期望完整目标与 ℓ 在旧点数值相等。</p><p class="en" lang="en">E-step: keep θ fixed and replace q with its posterior, making the bound tight. M-step: keep q fixed and improve the bound over θ. H(q) is constant in θ, so it can be omitted when finding the maximizer. Omitting entropy does not change the update, but the remaining expected complete-data objective alone need not numerically equal ℓ at the old point.</p></div><div class="lab" id="bound-lab"><div class="lab-header"><h3><span class="zh">固定后验，再移动参数；最后重新贴紧</span><span class="en" lang="en">Freeze the posterior, move parameters, then tighten again</span></h3><span class="lab-number">4</span></div><div class="bilingual"><p class="zh" lang="zh-CN">教学简化：7 个固定观测，μ₁=−1.8、μ₂=1.8、σ=1.2 都固定，只学习 π₁。绿色是观测似然 ℓ(π)，橙色是冻结 q 后的 ELBO。E-step 位置决定 q；候选 π 滑块只移动参数，不重算 q。</p><p class="en" lang="en">Teaching simplification: seven fixed observations with μ₁=−1.8, μ₂=1.8, and σ=1.2. Learn only π₁. Green is observed likelihood ℓ(π); coral is the ELBO with q frozen. The E-step position determines q; the candidate π slider moves parameters without recomputing q.</p></div><div class="controls"><div class="control"><label for="bound-anchor">计算 q 时的 π₁ / E-step anchor <output id="bound-anchor-value">0.25</output></label><input id="bound-anchor" type="range" min="0.05" max="0.95" step="0.01" value="0.25"></div><div class="control"><label for="bound-probe">候选 π₁ / Candidate weight <output id="bound-probe-value">0.25</output></label><input id="bound-probe" type="range" min="0.01" max="0.99" step="0.01" value="0.25"></div></div><div class="toggle-row"><button type="button" id="bound-touch">回到贴紧处 / Return to contact</button><button type="button" id="bound-m">M-step：优化 π / Optimize π</button><button type="button" id="bound-e">E-step：重算 q / Recompute q</button></div><p class="phase-note" id="bound-status" aria-live="polite"></p><div class="chart-frame"><svg id="bound-chart" viewBox="0 0 720 340" role="img" aria-label="固定后验，再移动参数；最后重新贴紧 / Freeze the posterior, move parameters, then tighten again"></svg></div><div class="stats" aria-live="polite"><div class="stat"><span>ℓ(π)</span><b id="bound-ll">—</b></div><div class="stat"><span>ELBO L(π,q)</span><b id="bound-elbo">—</b></div><div class="stat"><span>ℓ − L = Σ KL</span><b id="bound-gap">—</b></div></div></div><details><summary>无法精确算后验时 / When exact posteriors are unavailable</summary><div class="bilingual"><p class="zh" lang="zh-CN">教材简要提到 variational EM：用近似 q 仍可形成下界，但未必在当前 θ 贴紧。此时“优化 ELBO”和“保证真实观测似然每轮升高”不能直接画等号。本次不展开近似推断算法。</p><p class="en" lang="en">The book briefly mentions variational EM. An approximate q still gives a bound, but it may not touch the likelihood at the current θ. Improving that ELBO is not automatically the same guarantee of increasing observed likelihood. Approximate inference methods are beyond this reading’s focus.</p></div></details></section><section class="chapter" id="example"><p class="section-kicker">8.7.3.3 · BOOK EXAMPLE</p><h2><span class="zh">教材图：Old Faithful 的软分组</span><span class="en" lang="en">The book’s soft clustering of Old Faithful observations</span></h2><div class="bilingual"><p class="zh" lang="zh-CN">Figure 8.25 用二维 GMM 拟合黄石 Old Faithful：横纵轴来自喷发时长和到下一次喷发的等待时间。数据先去均值再除以标准差。教材初始均值为 (−1,1)、(1,−1)，两个协方差都是单位矩阵；图展示第 0、10、25、30、35、40 轮的变化。</p><p class="en" lang="en">Figure 8.25 fits a 2D GMM to Old Faithful measurements: eruption duration and waiting time until the next eruption. Data are standardized by subtracting the mean and dividing by the standard deviation. Initial means are (−1,1) and (1,−1), with identity covariances. The panels show iterations 0, 10, 25, 30, 35, and 40.</p></div><div class="bilingual"><p class="zh" lang="zh-CN">红蓝不是人工提供的真实标签，而是 E-step 的概率。紫色表示约各半。M-step 把这些软权重汇总为新的混合比例、均值与协方差。上面的主实验用一维教学数据重现这套机制，没有复制教材数据或把合成数据称为 Old Faithful。</p><p class="en" lang="en">Red and blue represent posterior responsibilities rather than supplied labels; purple indicates an approximately even split. The M-step aggregates soft weights into new proportions, means, and covariances. The main experiment above reproduces this mechanism with 1D teaching data, not the book’s dataset.</p></div><div class="plain-language"><div class="bilingual"><p class="zh" lang="zh-CN">最应掌握：会解释一次 E-step 和一次 M-step，会区分 π 与 r，会写出加权更新，会说明“贴紧的下界 + 提高下界”为什么保证观测似然非递减。</p><p class="en" lang="en">Priority: explain one E-step and M-step, distinguish π from r, write the weighted updates, and explain why a tight lower bound followed by bound improvement guarantees nondecreasing observed likelihood.</p></div></div></section><section class="chapter" id="check"><p class="section-kicker">SELF-CHECK</p><h2><span class="zh">八个问题，检查 EM 的关键区别</span><span class="en" lang="en">Eight checks for the essential EM distinctions</span></h2><div class="bilingual"><p class="zh" lang="zh-CN">先自己判断，再点选查看解释。</p><p class="en" lang="en">Choose an answer to reveal its explanation.</p></div><div class="quiz" data-answer="0" data-explanation="固定当前参数，推断后验 / Fix parameters and infer posteriors"><div class="bilingual"><p class="zh" lang="zh-CN">1. E-step 固定什么？</p><p class="en" lang="en">1. What is fixed in the E-step?</p></div><div class="quiz-options"><button type="button" data-choice="0">参数 θ / Parameters</button><button type="button" data-choice="1">责任度 r / Responsibilities</button></div><p class="feedback" aria-live="polite"></p></div><div class="quiz" data-answer="0" data-explanation="软分组允许分摊责任，一行和为 1 / Soft assignments share responsibility and sum to 1"><div class="bilingual"><p class="zh" lang="zh-CN">2. 一个点给两组 0.7 和 0.3，合理吗？</p><p class="en" lang="en">2. Can a point have responsibilities 0.7 and 0.3?</p></div><div class="quiz-options"><button type="button" data-choice="0">合理 / Yes</button><button type="button" data-choice="1">只能属于一组 / Only one group</button></div><p class="feedback" aria-live="polite"></p></div><div class="quiz" data-answer="1" data-explanation="本轮 q 和 r 要冻结 / This iteration’s q and r stay fixed"><div class="bilingual"><p class="zh" lang="zh-CN">3. M-step 试新参数时，要重算 r 吗？</p><p class="en" lang="en">3. Should M-step recompute r while trying new parameters?</p></div><div class="quiz-options"><button type="button" data-choice="0">要 / Yes</button><button type="button" data-choice="1">不要 / No</button></div><p class="feedback" aria-live="polite"></p></div><div class="quiz" data-answer="0" data-explanation="πₖ 是加权样本占比 / The weight is the effective sample fraction"><div class="bilingual"><p class="zh" lang="zh-CN">4. 混合比例 πₖ 的新值是什么？</p><p class="en" lang="en">4. How is πₖ updated?</p></div><div class="quiz-options"><button type="button" data-choice="0">Nₖ/N</button><button type="button" data-choice="1">μₖ/N</button><button type="button" data-choice="2">最大的 rₙₖ / Maximum responsibility</button></div><p class="feedback" aria-live="polite"></p></div><div class="quiz" data-answer="1" data-explanation="协方差用新均值，MLE 分母为 Nₖ / Use the new mean and denominator Nₖ"><div class="bilingual"><p class="zh" lang="zh-CN">5. 方差更新围绕哪个均值？</p><p class="en" lang="en">5. Which mean is used for the variance update?</p></div><div class="quiz-options"><button type="button" data-choice="0">旧均值 / Old mean</button><button type="button" data-choice="1">新加权均值 / New weighted mean</button></div><p class="feedback" aria-live="polite"></p></div><div class="quiz" data-answer="0" data-explanation="此时 KL(q∥posterior)=0 / The KL gap vanishes"><div class="bilingual"><p class="zh" lang="zh-CN">6. 何时 ELBO 在当前参数处贴紧？</p><p class="en" lang="en">6. When is the ELBO tight at the current parameters?</p></div><div class="quiz-options"><button type="button" data-choice="0">q 等于当前后验 / q equals the posterior</button><button type="button" data-choice="1">q 任意均匀 / Any uniform q</button></div><p class="feedback" aria-live="polite"></p></div><div class="quiz" data-answer="0" data-explanation="H(q) 对 θ 为常数，但它属于完整 ELBO / Entropy is constant in θ but belongs to the full ELBO"><div class="bilingual"><p class="zh" lang="zh-CN">7. 去掉 H(q) 之后，仍可找到同一个 M-step 最大点吗？</p><p class="en" lang="en">7. Can M-step omit H(q) without changing the maximizer?</p></div><div class="quiz-options"><button type="button" data-choice="0">可以，q 已冻结 / Yes, q is fixed</button><button type="button" data-choice="1">不可以 / No</button></div><p class="feedback" aria-live="polite"></p></div><div class="quiz" data-answer="0" data-explanation="依赖紧下界与正确 M-step，不是全局最优保证 / Tightness and a valid M-step ensure monotonicity, not global optimality"><div class="bilingual"><p class="zh" lang="zh-CN">8. 精确 EM 的核心保证是什么？</p><p class="en" lang="en">8. What is the core guarantee of exact EM?</p></div><div class="quiz-options"><button type="button" data-choice="0">观测似然非递减 / Observed likelihood is nondecreasing</button><button type="button" data-choice="1">每轮都找到全局最优 / Global optimum each round</button></div><p class="feedback" aria-live="polite"></p></div></section><section class="recap" id="recap"><h2><span class="zh">一句话串起 EM</span><span class="en" lang="en">Connect the EM loop</span></h2><div class="bilingual"><p class="zh" lang="zh-CN">不知道标签 → 用旧参数算软责任度 → 用固定责任度做加权拟合 → 得到新参数 → 再算新责任度。E-step 贴紧下界，M-step 提高下界，所以观测似然不会下降。</p><p class="en" lang="en">Unknown labels → infer soft responsibilities from old parameters → fit with those weights held fixed → obtain new parameters → recompute responsibilities. The E-step tightens the bound and the M-step raises it, so observed likelihood does not decrease.</p></div></section></main></div><footer>Kevin P. Murphy · <cite>Probabilistic Machine Learning: An Introduction</cite> · §8.7 excluding §§8.7.3.4–8.7.3.5<br>独立编写的双语学习笔记与教学实验 / Independently authored bilingual notes and teaching experiments · Oct 13, 2026</footer><script>(() => {
+ 'use strict';
+ const $=id=>document.getElementById(id),NS='http://www.w3.org/2000/svg';
+ const teal='#087f72',coral='#dc6547',ink='#173532';
+ const fmt=(x,n=4)=>Math.abs(x)<1e-12?(0).toFixed(n):x.toFixed(n);
+ const logNormal=(x,m,v)=>-.5*(Math.log(2*Math.PI*v)+(x-m)**2/v);
+ const normal=(x,m,v)=>Math.exp(logNormal(x,m,v));
+ const logSum=(a,b)=>{const m=Math.max(a,b);return m+Math.log(Math.exp(a-m)+Math.exp(b-m));};
+ const posterior=(x,p,m1,m2,v1,v2)=>{const a=Math.log(p)+logNormal(x,m1,v1),b=Math.log1p(-p)+logNormal(x,m2,v2);return Math.exp(a-logSum(a,b));};
+ const entropy=r=>r===0||r===1?0:-r*Math.log(r)-(1-r)*Math.log1p(-r);
+ function add(s,tag,attrs={},text) {const e=document.createElementNS(NS,tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));if(text!==undefined)e.textContent=text;s.appendChild(e);return e;}
+ const label=(s,x,y,t,a={})=>add(s,'text',{x,y,fill:ink,'font-size':14,'text-anchor':'middle',...a},t);
+ const line=(s,x1,y1,x2,y2,c='#c8d6d1')=>add(s,'line',{x1,y1,x2,y2,stroke:c,'stroke-width':1.4});
+ function reset(id,t) {const s=$(id);s.replaceChildren();add(s,'title',{},t);return s;}
+ function axes(s,xmin,xmax,ymin,ymax,height=340) {
+  const bottom=height-52,top=48,left=68,right=650,px=x=>left+(right-left)*(x-xmin)/(xmax-xmin),py=y=>bottom-(bottom-top)*(y-ymin)/(ymax-ymin);
+  add(s,'rect',{x:left,y:top,width:right-left,height:bottom-top,fill:'#fafbf8',stroke:'#d5dfd8',rx:3});
+  for(let i=0;i<=4;i++){const x=xmin+(xmax-xmin)*i/4,y=ymin+(ymax-ymin)*i/4;line(s,px(x),top,px(x),bottom,'#e7ede8');line(s,left,py(y),right,py(y),'#e7ede8');label(s,px(x),bottom+20,fmt(x,2),{'font-size':11});label(s,left-9,py(y)+4,fmt(y,2),{'text-anchor':'end','font-size':11});}
+  return {px,py,left,right,top,bottom};
+ }
+ function curve(s,ax,f,color,xmin,xmax,dash) {let d='';for(let i=0;i<=240;i++){const x=xmin+(xmax-xmin)*i/240;d+=(i?'L':'M')+ax.px(x)+','+ax.py(f(x));}add(s,'path',{d,fill:'none',stroke:color,'stroke-width':2.6,...(dash?{'stroke-dasharray':dash}:{})});}
+ function output(id,n=2){const x=Number($(id).value);$(id+'-value').value=fmt(x,n);return x;}
+ const blend=r=>{const a=[8,127,114],b=[220,101,71];return 'rgb('+a.map((x,i)=>Math.round(r*x+(1-r)*b[i])).join(',')+')';};
+ function responsibility() {
+  const y=output('point-y'),p=output('prior-pi'),r=posterior(y,p,-1.5,1.5,1.44,1.44);
+  $('resp-one').textContent=fmt(r);$('resp-two').textContent=fmt(1-r);$('resp-sum').textContent='1.0000';
+  const s=reset('responsibility-chart','Weighted densities and posterior component responsibility'),ax=axes(s,-4,4,0,.35);
+  label(s,360,25,'Weighted component densities · y = '+fmt(y,2));
+  curve(s,ax,x=>p*normal(x,-1.5,1.44),teal,-4,4);curve(s,ax,x=>(1-p)*normal(x,1.5,1.44),coral,-4,4);
+  line(s,ax.px(y),ax.top,ax.px(y),ax.bottom,ink);
+  [p*normal(y,-1.5,1.44),(1-p)*normal(y,1.5,1.44)].forEach((v,i)=>add(s,'circle',{cx:ax.px(y),cy:ax.py(v),r:5,fill:i?coral:teal}));
+  label(s,360,330,'Observation y');
+ }
+ ['point-y','prior-pi'].forEach(id=>$(id).addEventListener('input',responsibility));responsibility();
+
+ const smallY=[-3,-2,-1,1,2,3],softR=[.95,.85,.65,.35,.15,.05];let manualR=null;
+ function fit(data,r) {
+  const n=data.length,n1=r.reduce((a,b)=>a+b,0),n2=n-n1;
+  if(n1<=1e-10||n2<=1e-10)throw new Error('Insufficient effective sample count');
+  const m1=data.reduce((s,x,i)=>s+r[i]*x,0)/n1,m2=data.reduce((s,x,i)=>s+(1-r[i])*x,0)/n2;
+  const v1=data.reduce((s,x,i)=>s+r[i]*(x-m1)**2,0)/n1,v2=data.reduce((s,x,i)=>s+(1-r[i])*(x-m2)**2,0)/n2;
+  if(v1<=1e-12||v2<=1e-12)throw new Error('Variance too small for this demonstration');
+  return {p:n1/n,m1,m2,v1,v2,n1,n2};
+ }
+ function weighted() {
+  const r=manualR||smallY.map((_,i)=>output('weight-'+i));
+  if(manualR)smallY.forEach((_,i)=>{$('weight-'+i+'-value').value=fmt(r[i],2);});
+  const f=fit(smallY,r);$('weighted-n').textContent=fmt(f.n1,2)+' / '+fmt(f.n2,2);$('weighted-means').textContent=fmt(f.m1,3)+' / '+fmt(f.m2,3);$('weighted-var').textContent=fmt(f.v1,3)+' / '+fmt(f.v2,3);
+  $('weighted-table').innerHTML=[[f.n1,f.p,f.m1,f.v1],[f.n2,1-f.p,f.m2,f.v2]].map((a,i)=>'<tr><td>'+(i+1)+'</td>'+a.map(x=>'<td>'+fmt(x)+'</td>').join('')+'</tr>').join('');
+  const s=reset('weighted-chart','Effective counts and weighted fitted Gaussian components'),ax=axes(s,-4,4,0,.32);label(s,360,25,'Weighted fitted components · color = responsibility');
+  curve(s,ax,x=>f.p*normal(x,f.m1,f.v1),teal,-4,4);curve(s,ax,x=>(1-f.p)*normal(x,f.m2,f.v2),coral,-4,4);
+  smallY.forEach((x,i)=>{add(s,'circle',{cx:ax.px(x),cy:ax.bottom-8,r:7,fill:blend(r[i])});label(s,ax.px(x),ax.bottom-25,fmt(r[i],2),{'font-size':12});});
+  [f.m1,f.m2].forEach((m,i)=>line(s,ax.px(m),ax.top,ax.px(m),ax.bottom,i?coral:teal));label(s,360,330,'Observation y · vertical lines = new means');
+ }
+ smallY.forEach((_,i)=>$('weight-'+i).addEventListener('input',()=>{manualR=null;weighted();}));
+ $('weighted-hard').addEventListener('click',()=>{manualR=[1,1,1,0,0,0];smallY.forEach((_,i)=>{$('weight-'+i).disabled=true;});weighted();});
+ $('weighted-soft').addEventListener('click',()=>{manualR=null;smallY.forEach((_,i)=>{$('weight-'+i).disabled=false;$('weight-'+i).value=softR[i];});weighted();});weighted();
+
+ let seed=813473;
+ function random(){seed=(1664525*seed+1013904223)>>>0;return(seed+.5)/4294967296;}
+ const gaussianRandom=()=>Math.sqrt(-2*Math.log(random()))*Math.cos(2*Math.PI*random());
+ const data=Array.from({length:60},(_,i)=>(i<24?-2.1:2.0)+(i<24?.68:.9)*gaussianRandom()).sort((a,b)=>a-b);
+ const ll=f=>data.reduce((s,x)=>s+logSum(Math.log(f.p)+logNormal(x,f.m1,f.v1),Math.log1p(-f.p)+logNormal(x,f.m2,f.v2)),0);
+ let params,q=null,history=[],iterations=0,phase='ready';
+ const infer=f=>data.map(x=>posterior(x,f.p,f.m1,f.m2,f.v1,f.v2));
+ function drawEM() {
+  const current=ll(params);$('em-iteration').textContent=iterations;$('em-ll').textContent=fmt(current,6);$('em-delta').textContent=history.length>1?fmt(history.at(-1)-history.at(-2),6):'—';
+  $('em-e').disabled=phase==='e';$('em-m').disabled=phase!=='e';
+  $('em-phase').textContent=phase==='e'?'E-step 已完成：参数未变，责任度已固定。现在可执行 M-step。 / E-step complete: parameters unchanged, responsibilities frozen. Next: M-step.':iterations?'M-step 已完成：参数已更新。下一轮 E-step 才重新计算责任度。 / M-step complete: parameters updated. Next E-step recomputes responsibilities.':'先执行 E-step，计算当前参数下的责任度。 / Start with the E-step to infer responsibilities.';
+  $('em-parameters').innerHTML=[[params.p,params.m1,params.v1],[1-params.p,params.m2,params.v2]].map((a,i)=>'<tr><td>'+(i+1)+'</td>'+a.map(x=>'<td>'+fmt(x,5)+'</td>').join('')+'</tr>').join('');
+  $('em-responsibilities').innerHTML=data.slice(0,8).map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+fmt(x,3)+'</td><td>'+(q?fmt(q[i]):'—')+'</td><td>'+(q?fmt(1-q[i]):'—')+'</td></tr>').join('');
+  const xmin=Math.min(-5,data[0]-.5),xmax=Math.max(5,data.at(-1)+.5),mix=x=>params.p*normal(x,params.m1,params.v1)+(1-params.p)*normal(x,params.m2,params.v2);
+  const ymax=Math.max(...Array.from({length:241},(_,i)=>mix(xmin+(xmax-xmin)*i/240)))*1.2;
+  const s=reset('em-chart','Gaussian mixture curves and soft responsibilities'),ax=axes(s,xmin,xmax,0,ymax);label(s,360,25,'GMM after '+iterations+' M-steps · black = mixture');
+  curve(s,ax,x=>params.p*normal(x,params.m1,params.v1),teal,xmin,xmax);curve(s,ax,x=>(1-params.p)*normal(x,params.m2,params.v2),coral,xmin,xmax);curve(s,ax,mix,ink,xmin,xmax,'5 3');
+  data.forEach((x,i)=>add(s,'circle',{cx:ax.px(x),cy:ax.bottom-8-(i%3)*6,r:3.2,fill:q?blend(q[i]):'#a1ada5'}));label(s,360,330,'Observation y · gray = E-step not yet performed');
+  const hs=reset('em-history','Observed log likelihood at initialization and after M-steps'),lo=Math.min(...history)-1,hi=Math.max(...history)+1,ha=axes(hs,0,Math.max(1,history.length-1),lo,hi,270);label(hs,360,25,'Observed log likelihood · monotonic M-step history');
+  let d='';history.forEach((v,i)=>{d+=(i?'L':'M')+ha.px(i)+','+ha.py(v);add(hs,'circle',{cx:ha.px(i),cy:ha.py(v),r:3,fill:teal});});add(hs,'path',{d,fill:'none',stroke:teal,'stroke-width':2.5});label(hs,360,258,'Completed M-steps');
+ }
+ function resetEM(){params=$('em-init').value==='separated'?{p:.5,m1:-2.8,m2:2.8,v1:1.5,v2:1.5}:{p:.5,m1:-.5,m2:.5,v1:3.24,v2:3.24};q=null;iterations=0;phase='ready';history=[ll(params)];drawEM();}
+ function eStep(){q=infer(params);phase='e';drawEM();}
+ function mStep(){if(phase!=='e')return;const next=fit(data,q),old=ll(params),value=ll(next);if(value<old-1e-8)throw new Error('EM likelihood unexpectedly decreased');params=next;iterations++;history.push(value);phase='m';drawEM();}
+ function cycle(){if(phase!=='e')eStep();mStep();}
+ $('em-e').addEventListener('click',eStep);$('em-m').addEventListener('click',mStep);$('em-cycle').addEventListener('click',cycle);$('em-run').addEventListener('click',()=>{for(let i=0;i<12;i++)cycle();});$('em-reset').addEventListener('click',resetEM);$('em-init').addEventListener('change',resetEM);resetEM();
+
+ const by=[-2.7,-1.8,-.6,.2,1.4,2.1,2.7];let boundMessage='';
+ ['bound-anchor','bound-probe'].forEach(id=>{$(id).step='any';});
+ function boundParts(p,r){let obs=0,elbo=0,gap=0;by.forEach((x,i)=>{const a=Math.log(p)+logNormal(x,-1.8,1.44),b=Math.log1p(-p)+logNormal(x,1.8,1.44),v=logSum(a,b),u=r[i];obs+=v;elbo+=u*a+(1-u)*b+entropy(u);gap+=u*(Math.log(u)-(a-v))+(1-u)*(Math.log1p(-u)-(b-v));});return{obs,elbo,gap};}
+ function drawBound(){
+  const anchor=output('bound-anchor',5),p=output('bound-probe',5),r=by.map(x=>posterior(x,anchor,-1.8,1.8,1.44,1.44)),v=boundParts(p,r);
+  $('bound-ll').textContent=fmt(v.obs,6);$('bound-elbo').textContent=fmt(v.elbo,6);$('bound-gap').textContent=fmt(v.gap,6);$('bound-status').textContent=boundMessage||'q 由绿色锚点参数计算；候选参数移动时 q 保持不变。 / q comes from the anchor and remains frozen while the candidate moves.';
+  const all=Array.from({length:201},(_,i)=>boundParts(.01+.98*i/200,r)),lo=Math.min(...all.map(v=>v.elbo))-.5,hi=Math.max(...all.map(v=>v.obs))+.7;
+  const s=reset('bound-chart','Observed likelihood and a frozen-posterior ELBO'),ax=axes(s,.01,.99,lo,hi);label(s,360,25,'Green = ℓ(π) · coral = L(π,q)');curve(s,ax,x=>boundParts(x,r).obs,teal,.01,.99);curve(s,ax,x=>boundParts(x,r).elbo,coral,.01,.99);
+  const at=boundParts(anchor,r);add(s,'circle',{cx:ax.px(anchor),cy:ax.py(at.obs),r:5,fill:teal});line(s,ax.px(p),ax.py(v.obs),ax.px(p),ax.py(v.elbo),ink);[v.obs,v.elbo].forEach((y,i)=>add(s,'circle',{cx:ax.px(p),cy:ax.py(y),r:4,fill:i?coral:teal}));label(s,360,330,'Candidate π₁ · vertical distance = Σ KL');
+ }
+ ['bound-anchor','bound-probe'].forEach(id=>$(id).addEventListener('input',()=>{boundMessage='';drawBound();}));
+ $('bound-touch').addEventListener('click',()=>{$('bound-probe').value=$('bound-anchor').value;boundMessage='在锚点处，ELBO = 观测似然，KL = 0。 / At contact, ELBO = observed likelihood and KL = 0.';drawBound();});
+ $('bound-m').addEventListener('click',()=>{const a=Number($('bound-anchor').value),r=by.map(x=>posterior(x,a,-1.8,1.8,1.44,1.44)),p=r.reduce((s,x)=>s+x,0)/r.length;$('bound-probe').value=p;boundMessage='M-step：π₁ = Σ rₙ₁ / N；q 保持不变。滑块保留精确更新值。 / M-step: π₁ = Σrₙ₁/N; q stays fixed. The slider retains the exact update.';drawBound();});
+ $('bound-e').addEventListener('click',()=>{$('bound-anchor').value=$('bound-probe').value;boundMessage='E-step：在新 π 重新计算 q，目标值不动，界重新贴紧。 / E-step: recompute q at the new π; likelihood unchanged, bound tight again.';drawBound();});drawBound();
+
+ document.querySelectorAll('button[data-language]').forEach(button=>button.addEventListener('click',()=>{const lang=button.dataset.language;document.body.dataset.language=lang;document.documentElement.lang=lang==='en'?'en':'zh-CN';document.querySelectorAll('button[data-language]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));}));
+ document.querySelectorAll('.quiz').forEach(q=>q.querySelectorAll('[data-choice]').forEach(b=>b.addEventListener('click',()=>{const correct=b.dataset.choice===q.dataset.answer;q.querySelectorAll('[data-choice]').forEach(x=>x.classList.remove('correct','wrong'));b.classList.add(correct?'correct':'wrong');const f=q.querySelector('.feedback');f.textContent=(correct?'正确 / Correct. ':'再想一想 / Try again. ')+q.dataset.explanation;f.className='feedback '+(correct?'correct':'wrong');})));
+ const links=Array.from(document.querySelectorAll('.toc a')),sections=Array.from(document.querySelectorAll('main section[id]'));
+ let pending=false;function highlight(){pending=false;let current=sections[0];for(const s of sections){if(s.getBoundingClientRect().top<=140)current=s;}links.forEach(a=>a.classList.toggle('active',a.hash==='#'+current.id));}
+ document.addEventListener('scroll',()=>{if(!pending){pending=true;requestAnimationFrame(highlight);}},{passive:true});highlight();
+})();
+</script></body></html>
